@@ -1,0 +1,6 @@
+{
+  "S1": {"id": "REPLACE_WITH_YOUR_ELEVENLABS_VOICE_ID", "name": "Host 1"},
+  "S2": {"id": "REPLACE_WITH_YOUR_ELEVENLABS_VOICE_ID", "name": "Host 2"},
+  "CALLER_A": {"id": "REPLACE_WITH_A_VOICE_LIBRARY_VOICE_ID", "name": "Caller, Hometown"},
+  "CALLER_B": {"id": "REPLACE_WITH_A_VOICE_LIBRARY_VOICE_ID", "name": "Caller, Hometown"}
+}

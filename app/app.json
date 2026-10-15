@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Daily Dispatch",
+    "slug": "daily-dispatch",
+    "version": "1.0.209",
+    "orientation": "portrait",
+    "scheme": "dailydispatch",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "android": {
+      "package": "com.baker.dailydispatch",
+      "versionCode": 209,
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "REQUEST_INSTALL_PACKAGES"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "extra": {
+      "eink": false
+    }
+  }
+}

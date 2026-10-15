@@ -1,0 +1,7 @@
+## A caller rings in
+
+S1: [phone ringing] Hello, you're on Link Talk!
+CALLER_A: Hey, this is Jamie from Rivertown. I saw that story about the new coffee shop robot and I had to call in.
+S2: A robot that makes coffee. Now that's either the future or a very expensive way to spill coffee.
+CALLER_A: That's exactly what I thought, but apparently it's pretty reliable. I just don't know who you'd call when it breaks.
+S1: Probably the same guy who fixes the vending machines.
