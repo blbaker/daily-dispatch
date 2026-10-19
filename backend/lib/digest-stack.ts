@@ -30,8 +30,8 @@ export class DigestStack extends cdk.Stack {
       partitionKey: { name: "pk", type: dynamodb.AttributeType.STRING },
       sortKey: { name: "sk", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.RETAIN, // never auto-delete Baker's data
-      pointInTimeRecovery: false, // extra cost; single user, source is the WSL box
+      removalPolicy: cdk.RemovalPolicy.RETAIN, // never auto-delete the reader's data
+      pointInTimeRecovery: false, // extra cost; single user, the pipeline keeps the source data
     });
 
     // GSI to list edition META items newest-first without a scan.

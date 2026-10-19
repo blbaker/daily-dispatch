@@ -43,8 +43,8 @@ class TestConfigDefaults(unittest.TestCase):
 
     def test_listener_identity_defaults_are_neutral(self):
         config = self._reload()
-        self.assertNotIn("Brandon", config.LISTENER_NAME)
-        self.assertNotIn("Ames", config.LISTENER_TOWN)
+        self.assertEqual(config.LISTENER_NAME, "a listener")
+        self.assertEqual(config.LISTENER_TOWN, "out there somewhere")
 
     def test_digest_api_conf_empty_when_unset(self):
         config = self._reload()
@@ -80,6 +80,31 @@ class TestLinkStoreDedupe(unittest.TestCase):
         import pushbullet_bridge  # noqa: E402
         pushbullet_bridge.LINK_STORE = "/tmp/does-not-exist-daily-dispatch-test.jsonl"
         self.assertEqual(pushbullet_bridge._existing_urls(), set())
+
+
+class TestWebhookConfig(unittest.TestCase):
+    """The optional link webhook is configured by LINK_WEBHOOK_URL and
+    LINK_WEBHOOK_SECRET, read when the module loads."""
+
+    def _reload_bridge(self, env):
+        saved = {k: os.environ.get(k) for k in env}
+        os.environ.update(env)
+        try:
+            sys.modules.pop("pushbullet_bridge", None)
+            return importlib.import_module("pushbullet_bridge")
+        finally:
+            for k, v in saved.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+            sys.modules.pop("pushbullet_bridge", None)
+
+    def test_reads_link_webhook_env_vars(self):
+        bridge = self._reload_bridge({"LINK_WEBHOOK_URL": "https://hook.example/in",
+                                      "LINK_WEBHOOK_SECRET": " s3cret "})
+        self.assertEqual(bridge.WEBHOOK_URL, "https://hook.example/in")
+        self.assertEqual(bridge.WEBHOOK_SECRET, "s3cret")
 
 
 if __name__ == "__main__":

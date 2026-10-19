@@ -151,7 +151,7 @@ export CDK_DEFAULT_REGION=us-west-2
 pnpm exec cdk deploy -c apiKey="$(openssl rand -hex 32)"
 ```
 
-Note the API key `cdk deploy` prints or the one you generated -- that's
+Keep the API key you generated (the stack does not print it) -- that's
 `EXPO_PUBLIC_API_KEY` in the app and `DIGEST_API_KEY` for the pipeline.
 The stack also prints the Function URL, which is `EXPO_PUBLIC_API_URL` /
 `DIGEST_API_URL`.

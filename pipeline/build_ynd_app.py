@@ -17,8 +17,10 @@ Data-driven, so it regenerates every time a new digest lands.
 Usage: build_ynd_app.py [WEB_DIR]   (default: $DAILY_DISPATCH_WEB_DIR)
 Writes WEB_DIR/index.html
 
-The UI (CSS/JS in the TEMPLATE string below) is a shipped design and is not
-meant to be edited casually -- see CONTRIBUTING.md before changing it.
+The UI (HTML/CSS/JS) lives in templates/archive_app.html. It is a shipped
+design: changes to it need before/after screenshots in the PR (see
+CONTRIBUTING.md). Story categories and their keyword rules live in
+categories.py.
 """
 import html
 import json
@@ -30,6 +32,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import config  # noqa: E402
+from categories import CAT_LABEL, CATS, infer_category  # noqa: E402
 
 WEB_DIR = Path(sys.argv[1]).expanduser() if len(sys.argv) > 1 else config.WEB_DIR
 
@@ -82,36 +85,6 @@ def fetch_og_image(url, cache):
     cache[url] = img
     _save_img_cache(cache)
     return img
-
-
-CATS = {
-    "us": "#2B9FD9", "world": "#27AE60", "sports": "#F5A623",
-    "science": "#9B4DCA", "entertainment": "#E74C8A", "tech": "#3498DB",
-    "business": "#1ABC9C", "politics": "#E74C3C", "health": "#2ECC71",
-}
-CAT_LABEL = {
-    "us": "U.S.", "world": "World", "sports": "Sports", "science": "Science",
-    "entertainment": "Entertainment", "tech": "Technology",
-    "business": "Business", "politics": "Politics", "health": "Health",
-}
-# keyword -> category, checked in order (first match wins)
-CAT_RULES = [
-    ("tech", r"\b(claude code|chrome extension|extension|api|sdk|github|open ?source|agent|codex|kubernetes|typescript|python|rust|npm|compiler|webassembly|wasm|manifest v3|framework|library|repo|cli)\b"),
-    ("sports", r"\b(nba|nfl|cyclones|hawkeyes|cavs|game|season|coach|playoff|quarterback|raiders)\b"),
-    ("science", r"\b(climate|research|study|space|nasa|physic|scien|model|quantum|gpu|qwen|opus)\b"),
-    ("entertainment", r"\b(plex|tv|movie|show|film|music|stream|episode|television|netflix)\b"),
-    ("business", r"\b(anthropic|openai|acqui|funding|revenue|market share|enterprise|ipo|startup|token load)\b"),
-    ("world", r"\b(uae|climate|un |united nations|global|europe|china|ukraine)\b"),
-    ("us", r"\b(senate|congress|obama|washington|u\.s\.|federal)\b"),
-]
-
-
-def infer_category(text):
-    t = text.lower()
-    for cat, pat in CAT_RULES:
-        if re.search(pat, t):
-            return cat
-    return "tech"  # a dev-heavy feed defaults to tech; adjust CAT_RULES for your own feed
 
 
 def parse_edition(path):

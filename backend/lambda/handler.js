@@ -3,12 +3,12 @@
  * Daily Digest API — single Lambda behind a Function URL.
  *
  * Auth: every request must carry the API key, either as header `x-api-key`
- * or query param `?key=`. Compared in constant time. Baker is the only user.
+ * or query param `?key=`. Compared in constant time. Built for a single user.
  *
  * Routes (method + path in the Function URL event):
  *   GET  /editions            -> list edition metadata, newest first
  *   GET  /editions/<date>     -> one edition with all its stories
- *   POST /editions            -> upsert an edition + stories (the 5PM job)
+ *   POST /editions            -> upsert an edition + stories (the daily digest job)
  *   GET  /health              -> ok (no auth) for a cheap liveness check
  */
 const crypto = require("crypto");
@@ -164,7 +164,7 @@ exports.handler = async (event) => {
       });
     }
 
-    // POST /editions  -> upsert (the 5PM digest job)
+    // POST /editions  -> upsert (the daily digest job)
     if (method === "POST" && path === "/editions") {
       const payload = JSON.parse(event.body || "{}");
       const date = payload.id; // YYYY-MM-DD

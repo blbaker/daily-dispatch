@@ -10,8 +10,8 @@ Required: PUSHBULLET_TOKEN env var (your own Pushbullet access token, from
 https://www.pushbullet.com/#settings/account -- never hardcode it).
 
 Optional forwarding: if you also run a webhook that wants to know about new
-links immediately (chat bot, automation, etc.), set HERMES_LINK_WEBHOOK to
-its URL and HERMES_LINK_WEBHOOK_SECRET to sign the request. Leave both unset
+links immediately (chat bot, automation, etc.), set LINK_WEBHOOK_URL to
+its URL and LINK_WEBHOOK_SECRET to sign the request. Leave both unset
 to just capture links locally.
 """
 import hashlib
@@ -30,8 +30,8 @@ import config
 # tests and for other scripts that reuse _existing_urls()/_save() without
 # requiring that dependency or a real PUSHBULLET_TOKEN.
 PB_TOKEN = os.environ.get("PUSHBULLET_TOKEN", "").strip()
-HERMES_WEBHOOK = os.environ.get("HERMES_LINK_WEBHOOK", "")
-WEBHOOK_SECRET = os.environ.get("HERMES_LINK_WEBHOOK_SECRET", "").strip()
+WEBHOOK_URL = os.environ.get("LINK_WEBHOOK_URL", "")
+WEBHOOK_SECRET = os.environ.get("LINK_WEBHOOK_SECRET", "").strip()
 LINK_STORE = config.LINK_STORE
 API = "https://api.pushbullet.com/v2"
 URL_RE = re.compile(r"https?://[^\s\"'<>]+")
@@ -78,8 +78,8 @@ def _existing_urls():
 
 
 def _save(url, push):
-    """Append the link to the digest store so the 5pm job can build the
-    digest. Failure here must never block the instant forward. Skips URLs
+    """Append the link to the digest store so the daily digest job can
+    build the digest. Failure here must never block the instant forward. Skips URLs
     already in the store so a startup backfill can't duplicate a live
     capture."""
     try:
@@ -138,7 +138,7 @@ def _push_live():
 
 
 def _forward(url):
-    if not HERMES_WEBHOOK:
+    if not WEBHOOK_URL:
         return
     payload = json.dumps({"url": url}).encode()
     headers = {"Content-Type": "application/json"}
@@ -148,7 +148,7 @@ def _forward(url):
                        ts.encode() + b"." + payload, hashlib.sha256).hexdigest()
         headers["X-Webhook-Timestamp"] = ts
         headers["X-Webhook-Signature-V2"] = sig
-    req = urllib.request.Request(HERMES_WEBHOOK, data=payload, headers=headers)
+    req = urllib.request.Request(WEBHOOK_URL, data=payload, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=20) as r:
             print(f"forwarded {url} -> {r.status}", flush=True)
@@ -202,7 +202,7 @@ def main():
     midnight = time.mktime((now.tm_year, now.tm_mon, now.tm_mday,
                             0, 0, 0, 0, 0, -1))
     _last_seen = midnight
-    sink = HERMES_WEBHOOK or "(no webhook configured, local capture only)"
+    sink = WEBHOOK_URL or "(no webhook configured, local capture only)"
     print(f"pushbullet-bridge up; sink={sink}; backfilling from "
           f"{time.strftime('%Y-%m-%d 00:00', now)}", flush=True)
     try:
