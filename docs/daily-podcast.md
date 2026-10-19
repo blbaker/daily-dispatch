@@ -170,7 +170,8 @@ Copy `templates/github-actions-daily-podcast.yml` to
 config file at `daily-dispatch/config.json`, and add your keys as repository
 secrets (`AWS_REGION` and `AZURE_SPEECH_REGION` as variables). The workflow
 checks once an hour, keeps the state file in the Actions cache, and uploads
-each episode as an artifact for 14 days.
+each episode as an artifact for 14 days. With the `DAILY_DISPATCH_API_URL` and
+`DAILY_DISPATCH_API_KEY` secrets set, it also publishes the episode to the app.
 
 Hosted runners have no Ollama, no local TTS server and no `claude` CLI, so
 use the `anthropic` or `openai` writer and a cloud voice, with `"confirm": true`.
@@ -194,10 +195,31 @@ Each check reads the settings fresh, so:
 - If the machine was asleep or off at the set time, the next check that same
   local day makes the episode. A day that passes completely is not made later.
 
+## Publishing the episode to the app
+
+When `DAILY_DISPATCH_API_URL` and `DAILY_DISPATCH_API_KEY` are set, a run that
+makes an episode also publishes it to the backend:
+
+1. `POST /episodes` with the date as the id, a title such as
+   `Link Talk: Monday, October 19, 2026`, and the length in seconds. The
+   backend replies with a presigned upload URL.
+2. `PUT` of `episode.mp3` to that URL. The API key is not sent with it.
+3. `POST /episodes` with `{"id": "<date>", "ready": true}`. The backend checks
+   that the audio arrived, marks the episode ready and sends the "New episode
+   ready" push.
+
+The app finds episodes through the backend. `GET /episodes` lists the ready
+ones, newest first, and `GET /episodes/<date>` returns one; both include an
+audio URL that works for an hour. The push carries `data.type` `episode`,
+`data.id` (the date) and `data.path` (`/episodes/<date>`), so a tap can open
+that episode. Without the two variables, and on a `--dry-run`, nothing is
+uploaded. Episodes made while the variables were unset are not sent later.
+
 ## When something goes wrong
 
 The state file, `~/.local/state/daily-dispatch/state.json`, records each date
-as `done` or `failed` with an attempt count.
+as `done` or `failed` with an attempt count, plus the upload's progress when
+the backend is set.
 
 - No digest for the date yet, a 404 from `/editions/<date>`, or an edition
   still in progress means "waiting". The next check tries again and no attempt
@@ -209,6 +231,11 @@ as `done` or `failed` with an attempt count.
 - A configuration problem (missing key, unknown provider, no ffmpeg, a paid
   provider without `"confirm": true`) fails before anything is spent and does
   not count as an attempt. It shows in the log on every check until fixed.
+- A failed upload does not count as an attempt either, because the audio
+  exists. The run exits 1, the upload stays `pending`, and every later check
+  retries only the upload until it works. If `episode.mp3` is gone by then (a
+  GitHub Actions runner keeps only the state file), the upload is marked
+  `gave-up`, and `podcast run --force --date <date>` makes and sends it again.
 - `daily-dispatch podcast run --force` makes today's episode regardless of the
   state file.
 
