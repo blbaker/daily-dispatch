@@ -1,0 +1,47 @@
+{
+  "name": "daily-dispatch-docs",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The Daily Dispatch documentation site. Pages come from ../docs and ../CONTRIBUTING.md.",
+  "scripts": {
+    "sync": "node scripts/sync-docs.mts",
+    "start": "node scripts/sync-docs.mts && docusaurus start --host 0.0.0.0",
+    "build": "node scripts/sync-docs.mts && docusaurus build",
+    "serve": "docusaurus serve --host 0.0.0.0",
+    "clear": "docusaurus clear",
+    "typecheck": "tsc",
+    "test": "node --test 'scripts/*.test.mts'"
+  },
+  "dependencies": {
+    "@docusaurus/core": "3.10.2",
+    "@docusaurus/preset-classic": "3.10.2",
+    "@mdx-js/react": "^3.0.0",
+    "clsx": "^2.0.0",
+    "prism-react-renderer": "^2.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@docusaurus/module-type-aliases": "3.10.2",
+    "@docusaurus/tsconfig": "3.10.2",
+    "@docusaurus/types": "3.10.2",
+    "@types/node": "^24.0.0",
+    "@types/react": "^18.3.0",
+    "typescript": "^5.6.0"
+  },
+  "browserslist": {
+    "production": [
+      ">0.5%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "engines": {
+    "node": ">=22.18"
+  }
+}

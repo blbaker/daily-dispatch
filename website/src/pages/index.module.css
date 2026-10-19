@@ -1,0 +1,174 @@
+.hero {
+  padding-block: clamp(32px, 6vw, 72px) clamp(40px, 5vw, 56px);
+  border-bottom: 1px solid var(--rule);
+}
+
+.heroInner {
+  max-width: 1120px;
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+  display: grid;
+  gap: clamp(32px, 5vw, 56px);
+  align-items: center;
+}
+
+@media (min-width: 900px) {
+  .heroInner {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  }
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  font-size: clamp(2rem, 2.6vw + 1rem, 3.1rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.lede {
+  margin: 1.1em 0 0;
+  max-width: 40ch;
+  font-size: clamp(1.125rem, 0.5vw + 1rem, 1.3125rem);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.ctas {
+  margin-top: 1.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.ctaPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--ink);
+  font-weight: var(--fw-semibold);
+  color: var(--ink) !important;
+  text-decoration: none !important;
+}
+.ctaPrimary:hover { color: rgb(var(--accent-ink)) !important; border-bottom-color: rgb(var(--accent-ink)); }
+
+.ctaSecondary {
+  color: var(--ink-3) !important;
+  text-decoration: underline !important;
+  text-decoration-color: var(--ink-4) !important;
+  text-underline-offset: 0.2em;
+}
+.ctaSecondary:hover { color: var(--ink) !important; text-decoration-color: var(--ink-3) !important; }
+
+/* Two real app screenshots, phone and e-ink, side by side with the second
+   one dropped a little. They are pictures of the app, so they keep their own
+   light colours in dark mode. */
+.heroShots {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+.heroShot {
+  width: min(46%, 230px);
+  height: auto;
+  border: 1px solid var(--rule);
+  border-radius: 18px;
+}
+.heroShot + .heroShot {
+  margin-left: 4%;
+  margin-top: 10%;
+}
+
+.section {
+  max-width: 1120px;
+  margin-inline: auto;
+  padding: clamp(40px, 6vw, 72px) 1.5rem;
+}
+.section + .section { border-top: 1px solid var(--rule); }
+
+.sectionHead { max-width: 56ch; }
+.sectionTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--fw-semibold);
+  font-size: clamp(1.5rem, 1.4vw + 1rem, 2rem);
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+.sectionIntro {
+  margin: 0.6em 0 0;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.steps {
+  margin: 1.75rem 0 0;
+  padding: 0;
+  max-width: 68ch;
+  list-style: none;
+  counter-reset: step;
+}
+.step {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  padding-block: 0.9rem;
+  border-bottom: 1px solid var(--rule-faint);
+}
+.step::before {
+  content: counter(step);
+  font-family: var(--font-display);
+  font-weight: var(--fw-semibold);
+  color: var(--ink-3);
+}
+.stepText {
+  font-size: clamp(1.0625rem, 0.25vw + 1rem, 1.1875rem);
+  line-height: 1.6;
+  color: var(--ink-1);
+}
+
+.rowList {
+  margin: 1.75rem 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--ink);
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  padding-block: 0.9rem;
+  border-bottom: 1px solid var(--rule-faint);
+}
+.rowName {
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
+}
+.rowDetail {
+  font-size: 0.9375rem;
+  color: var(--ink-3);
+}
+
+.docList {
+  margin: 1.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.docRow { border-bottom: 1px solid var(--rule-faint); }
+.docLink {
+  display: grid;
+  gap: 0.2rem;
+  padding-block: 0.9rem;
+  text-decoration: none !important;
+  color: inherit !important;
+  border-radius: 4px;
+}
+.docLink:hover .docTitle { text-decoration: underline; text-underline-offset: 3px; }
+.docTitle { font-weight: var(--fw-semibold); color: var(--ink); }
+.docDek { font-size: 0.9375rem; color: var(--ink-3); }

@@ -20,7 +20,7 @@
 #      on npmjs.com or with `npm stage approve`. The trusted publisher on
 #      npmjs.com allows staged publishing only.
 #
-# One-time setup on npm and GitHub is in docs/releasing.md.
+# One-time setup on npm and GitHub is in docs/releasing-npm.md.
 name: release
 
 on:

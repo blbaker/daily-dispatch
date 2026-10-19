@@ -99,7 +99,7 @@ gh workflow run release-artifacts.yml -f tag=v1.2.3
 ```
 
 or create the `RELEASE_PLEASE_TOKEN` repository secret described in
-`docs/releasing.md`. `release-please.yml` passes it to Release Please, and
+`docs/releasing-npm.md`. `release-please.yml` passes it to Release Please, and
 the tags it then creates start this workflow and `release.yml`.
 
 ## Running the steps locally

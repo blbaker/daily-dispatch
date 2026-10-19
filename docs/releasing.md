@@ -1,197 +1,84 @@
-# Releasing daily-dispatch to npm
+# Releasing
 
-The `daily-dispatch` package in `packages/daily-dispatch` is published by
-GitHub Actions with npm trusted publishing. The repository stores no npm
-token, and every release waits on npm as a staged version until a
-maintainer approves it with 2FA.
+A release has up to four parts, and each one has its own trigger. Only the
+first is automatic.
 
-## How a release works
+| Part | How it is made | Who runs it |
+|---|---|---|
+| Version number and changelog | Release Please, from the commits on `main` | GitHub Actions, then a maintainer merges its PR |
+| App files on the GitHub Release | `release-artifacts.yml`, on a `v*` tag | GitHub Actions |
+| In-app Android update | `scripts/release.sh` | A maintainer, by hand |
+| Docs site | `pages.yml`, on every push to `main` | GitHub Actions |
 
-1. Conventional commits land on `main`. Release Please opens or updates a
-   release PR titled `chore(main): release X.Y.Z`. It bumps
-   `.release-please-manifest.json`, the `version` in
-   `packages/daily-dispatch/package.json`, and `CHANGELOG.md`.
-2. A maintainer merges the release PR. Release Please creates the tag
-   `vX.Y.Z` and a GitHub release.
-3. The tag starts `.github/workflows/release.yml`. It runs the gates in
-   `package.yml` (the same workflow every pull request runs), then the
-   publish job:
-   - checks that the tag matches the package version, and that the package
-     metadata and the tarball contents are what we intend;
-   - runs `npm publish --dry-run`;
-   - when the repository variable `DD_PUBLISH_ENABLED` is `true`, runs
-     `npm stage publish --provenance`. GitHub's OIDC token authenticates the
-     job, and npm attaches a provenance statement.
-4. The staged version stays private until a maintainer approves it.
+## Version and changelog
 
-The app's version in `app/app.json` is not part of this. `scripts/release.sh`
-owns it.
+`release-please.yml` runs on every push to `main`. It reads the Conventional
+Commit messages since the last release and keeps a release PR open with the
+next version number and the new `CHANGELOG.md` entries:
 
-## One-time setup
+- `fix:` bumps the patch version.
+- `feat:` bumps the minor version.
+- A `BREAKING CHANGE:` footer bumps the major version. While the version is
+  below 1.0.0 it bumps the minor version instead.
 
-Do these in order. Steps 1 and 2 need your npm account with 2FA, and npm
-11.15.0 or newer on your machine:
+The version lives in `.release-please-manifest.json`, and Release Please
+also writes it into `expo.version` in `app/app.json`. Merging the release PR
+creates the `vX.Y.Z` tag and the GitHub Release. Only a maintainer merges it.
 
-```sh
-npm install -g npm@11.21.1
-npm login
-```
+## App files on the release
 
-### 1. Create the package name with a throwaway staged version
-
-`npm trust` only works on a package that already exists, and `daily-dispatch`
-does not exist yet. Staging a throwaway prerelease creates the name. Reject
-it right away so nothing is ever published under it.
-
-```sh
-git clone https://github.com/blbaker/daily-dispatch.git
-cd daily-dispatch
-pnpm install --frozen-lockfile
-pnpm -r build
-cd packages/daily-dispatch
-npm version 0.0.0-bootstrap.0 --no-git-tag-version
-npm stage publish --tag bootstrap --provenance=false
-```
-
-npm needs `--tag` for a prerelease version. `--provenance=false` is needed
-here because `package.json` asks for provenance, and only a CI run can
-produce it.
-
-Then reject the staged version and put the real version back:
-
-```sh
-npm stage list daily-dispatch
-npm stage reject STAGE_ID
-git checkout -- package.json
-```
-
-Replace `STAGE_ID` with the ID that `npm stage list` prints for
-`0.0.0-bootstrap.0`. Don't approve it. Afterwards,
-`npm view daily-dispatch versions` may list `0.0.0-stage`: npm adds that
-placeholder itself when it creates a name for staging.
-
-### 2. Add the trusted publisher
-
-Do this no more than two days before the first release: npm expires a
-trusted publisher that goes unused for two days.
-
-```sh
-npm trust github daily-dispatch \
-  --file release.yml \
-  --repository blbaker/daily-dispatch \
-  --environment npm-publish \
-  --allow-stage-publish \
-  --yes
-npm trust list daily-dispatch
-```
-
-`npm trust` always asks for 2FA, through a link it opens in the browser.
-`--allow-stage-publish` without `--allow-publish` means a workflow run can
-only stage a version, never publish one directly. The same setting is on
-npmjs.com under the package's Settings, Trusted publishing.
-
-### 3. Add the GitHub secret and variable
+`release-artifacts.yml` builds the tagged commit for every platform and
+attaches the files to the tag's GitHub Release, along with `SHA256SUMS.txt`:
+the Android phone and e-ink APKs, the iOS simulator build, the web export,
+and the desktop packages for Linux, macOS and Windows.
 
 A tag that Release Please creates with the default `GITHUB_TOKEN` does not
-start other workflows, so `release.yml` would never run after a merge. Give
-Release Please its own token: a fine-grained personal access token for
-`blbaker/daily-dispatch` only, with Contents and Pull requests set to read and
-write. Then store it, and turn publishing on:
+start other workflows, so start this one by hand after merging the release
+PR:
 
 ```sh
-gh secret set RELEASE_PLEASE_TOKEN --repo blbaker/daily-dispatch
-gh variable set DD_PUBLISH_ENABLED --body true --repo blbaker/daily-dispatch
+gh workflow run release-artifacts.yml -f tag=v1.2.3
 ```
 
-`gh secret set` prompts for the token value.
+[App builds](builds.md) covers what each job builds, how Android release
+signing works, and how to run every step on your own machine.
 
-Optional, once the repository is public (private repositories need a paid
-plan for this): require your approval before the publish job starts.
+## In-app Android updates
+
+The Android app checks `GET /app/latest` on your backend and shows an update
+banner when a newer build is there. `scripts/release.sh` publishes one:
 
 ```sh
-gh api -X PUT repos/blbaker/daily-dispatch/environments/npm-publish --input - <<EOF
-{"reviewers": [{"type": "User", "id": $(gh api users/blbaker --jq .id)}]}
-EOF
+scripts/release.sh "Short release notes"
 ```
 
-### 4. Approve the first release
+It bumps `versionCode`, builds the phone and e-ink APKs, checks them, uploads
+them to the release bucket from the backend stack, and keeps the newest three
+releases. Pass `--no-bump` to rebuild without changing `versionCode`.
 
-The first release is 0.1.0, the version already in the files. Release Please
-would otherwise propose 0.2.0, because the manifest records 0.1.0 as the
-current version. The commit that set up this release config carries a
-`Release-As: 0.1.0` footer to prevent that. Check the release PR's title
-before you merge it. If it says anything other than 0.1.0, push this commit
-to `main` and wait for the PR to update:
+It expects:
 
-```sh
-git commit --allow-empty -m "chore: release 0.1.0" -m "Release-As: 0.1.0"
-git push origin main
-```
+- `ANDROID_HOME` and `JAVA_HOME` pointing at your Android SDK and JDK
+- AWS credentials that can write to the release bucket
+- `RELEASE_BUCKET`, the `ReleaseBucketOut` output of the backend stack
+- `APK_OUT_DIR` for the built files, and optionally `APK_MIRROR_DIR` for a
+  second copy
 
-Merge the release PR, then watch the release run. Each job's result is
-listed separately:
+`backend/.env.example` lists these variables. An APK from a GitHub Release
+can only update a copy installed through this updater when both were signed
+with the same key.
 
-```sh
-gh run list --workflow release.yml --limit 1
-gh run view RUN_ID --json jobs --jq '.jobs[] | "\(.conclusion)\t\(.name)"'
-```
+## The npm package
 
-Replace `RUN_ID` with the ID from the first command. When `publish` succeeds,
-check the staged version and approve it:
+The tag also runs `release.yml`, which stages `daily-dispatch` on npm through
+trusted publishing. A maintainer approves each staged version on npmjs.com
+with 2FA before it goes public. The one-time setup and the approval steps are
+in [Releasing to npm](releasing-npm.md).
 
-```sh
-npm stage list daily-dispatch
-npm stage view STAGE_ID
-npm stage approve STAGE_ID
-```
+## Docs site
 
-`npm stage view` shows the version and file list. Approve only a staged
-version you expect. You can also approve on npmjs.com.
-
-Finally, install it like a user would:
-
-```sh
-cd "$(mktemp -d)"
-npm install daily-dispatch
-npx daily-dispatch --help
-npm audit signatures
-```
-
-`npm audit signatures` should report a verified attestation for
-`daily-dispatch`.
-
-## Every later release
-
-Merge the release PR, then approve the staged version with
-`npm stage list daily-dispatch` and `npm stage approve STAGE_ID`.
-
-## What stops an accidental publish
-
-- `release.yml` runs on a pushed `v*` tag and nothing else.
-- The publish job needs the gates job, which calls `package.yml`.
-- The staging step runs only when `DD_PUBLISH_ENABLED` is `true`. To turn
-  publishing off, run
-  `gh variable delete DD_PUBLISH_ENABLED --repo blbaker/daily-dispatch`.
-- The trusted publisher allows staged publishing only, and each staged
-  version needs a maintainer's 2FA approval.
-- `tools/release/workflows-rules.ts` fails CI if a workflow change weakens
-  any of the above.
-
-## Checks you can run locally
-
-```sh
-pnpm install --frozen-lockfile
-pnpm -r build
-pnpm run release:check
-pnpm run release:test
-pnpm run release:rehearse
-```
-
-- `release:check` runs the metadata gate, the tarball gate, and the workflow
-  policy plus actionlint.
-- `release:test` seeds one violation per rule and checks that each gate
-  fails.
-- `release:rehearse` publishes the package to a throwaway registry on
-  127.0.0.1, installs it by name in an empty directory, and runs the
-  installed CLI. Nothing leaves your machine except the download of the
-  registry server itself.
+`pages.yml` builds this site from `website/` and the Markdown files in
+`docs/` on every push to `main` that touches them, and deploys it to GitHub
+Pages. A pull request that touches the same files only builds the site, so a
+broken link fails the check before it merges. Pages has to be turned on once
+in the repository settings, with GitHub Actions as the source.

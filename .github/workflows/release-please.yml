@@ -11,7 +11,7 @@
 # token) with contents and pull-requests write on this repository. Until it
 # exists this workflow still opens and updates the release PR; only the
 # automatic start of release.yml after a merge is missing. See
-# docs/releasing.md.
+# docs/releasing-npm.md.
 name: release-please
 
 on:

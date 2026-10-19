@@ -1,134 +1,162 @@
-# Contributing to Daily Dispatch
+# Contributing
 
-Thanks for taking a look at this. It started as a personal tool, so a few
-things are opinionated on purpose. This doc covers how to get set up, how
-the branch and commit flow works, and what CI checks before a PR can merge.
+Thanks for taking a look. Daily Dispatch started as a personal tool, so some
+choices are opinionated on purpose. This page covers how to set up a clone,
+which checks to run, and how a change gets from a branch to `main`.
 
-## Getting set up
+If you use Claude Code, Codex or another coding agent, point it at
+[AGENTS.md](AGENTS.md). It has the same checks and rules in the order an
+agent needs them. `CLAUDE.md` only points there.
 
-You need git, Node 24, pnpm 10 or newer, and Python 3.12 or newer. The
-commands below are the ones a fresh clone was checked with; none of them
-need AWS credentials or any API key.
+## Set up a clone
 
-Fork the repo, clone your fork, and add the upstream remote:
+You need Git, Node.js 24, pnpm 10 or newer, and Python 3.12 or newer. None of
+the commands on this page need AWS credentials or an API key.
 
-```
+Fork the repository, clone your fork, and add the original as `upstream`:
+
+```sh
 git clone https://github.com/<you>/daily-dispatch.git
 cd daily-dispatch
 git remote add upstream https://github.com/blbaker/daily-dispatch.git
-```
-
-Create a branch off `main` for your change:
-
-```
 git checkout -b feat/short-description
 ```
 
-### App
+The repository has several projects that install separately:
 
-```
-cd app
-npm install --legacy-peer-deps
-cp .env.example .env   # fill in your own API URL/key, or leave blank to browse the UI with no data
-npx tsc --noEmit        # typecheck
-npm run web              # run it in a browser
+| Directory | What it is | Package manager |
+|---|---|---|
+| `packages/daily-dispatch/` | The podcast CLI and library | pnpm workspace at the root |
+| `backend/` | The AWS CDK stack | pnpm, own lockfile |
+| `app/` | The Expo app for phone, e-ink and web | npm |
+| `app/desktop/` | The same app on Impeller for macOS, Linux and Windows | npm |
+| `pipeline/`, `tests/` | The Python pipeline and its tests | none needed for the tests |
+| `website/` | This documentation site | pnpm, own lockfile |
+
+## Run the checks
+
+Run the checks for the parts you changed before you open a pull request.
+
+The npm package:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm -r typecheck
+pnpm -r test
 ```
 
-### Backend
+The backend:
 
-```
+```sh
 cd backend
-pnpm install --frozen-lockfile --ignore-workspace  # backend keeps its own lockfile
+pnpm install --frozen-lockfile --ignore-workspace
 pnpm typecheck
 pnpm test
-pnpm exec cdk synth     # renders the CloudFormation template, no AWS credentials needed
+pnpm exec cdk synth --quiet
 ```
 
-Never run `cdk deploy`, `cdk diff` against a real account, or `cdk destroy`
-as part of a contribution. Those are the maintainer's call, run by hand,
-against their own AWS account.
+`cdk synth` renders the CloudFormation template locally. Never run
+`cdk deploy`, `cdk destroy`, or `cdk diff` against a real account as part of
+a contribution. Deploying is the maintainer's job.
 
-### Pipeline (Python)
+The app:
 
+```sh
+cd app
+npm ci --legacy-peer-deps
+npm run typecheck
+npm test
 ```
-cd pipeline
-python3 -m py_compile *.py
-cd ..
+
+The desktop app:
+
+```sh
+cd app/desktop
+npm ci
+npm run typecheck
+npm run gate
+```
+
+The gate renders the app headless with the engine for your OS and checks
+the frames. See [Desktop](docs/desktop.md).
+
+The CI scripts and the Python pipeline, from the repository root:
+
+```sh
+node --test 'scripts/ci/*.test.mts'
+python3 -m py_compile pipeline/*.py scripts/*.py
 python3 -m unittest discover -s tests -v
 ```
 
-No virtualenv is required for the pure-parser scripts; `pushbullet_bridge.py`
-needs `websocket-client` if you're running the live listener, but that's
-not required to run the tests.
+The docs site:
 
-## Branch and commit conventions
+```sh
+cd website
+pnpm install --frozen-lockfile --ignore-workspace
+pnpm build
+```
 
-Commit messages (and PR titles) follow
+The build fails on a broken link, so run it whenever you change a file in
+`docs/`, `website/` or this one.
+
+## Write a change
+
+- Keep each branch to one change.
+- Keep files at 300 lines or fewer. If a file you need to edit is over the
+  limit, split it first in its own commit.
+- Write new code in TypeScript with `strict` on.
+- Add a test that fails before your change and passes after it.
+- Read secrets and machine-specific values from environment variables, and
+  add each new variable to the matching `.env*.example` file.
+- Tests never call a paid API. Fake `fetch` the way the existing tests do.
+
+## Commit messages and pull request titles
+
+Commits and pull request titles follow
 [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
 
 ```
 <type>(<scope>): <description>
 ```
 
-Common types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci`.
-Use the imperative, lowercase, no trailing period: `fix(app): correct
-archive card date format`, not `Fixed a bug.`
+Common types are `feat`, `fix`, `docs`, `chore`, `refactor`, `test` and
+`ci`. Use the imperative, lowercase, with no trailing period, for example
+`fix(app): correct archive card date format`.
 
-This matters here specifically because [release-please](https://github.com/googleapis/release-please)
-reads these commits to decide the next version number and write the
-changelog. A PR titled `feat: add dark mode` becomes a minor version bump;
-`fix: ...` becomes a patch; anything with a `BREAKING CHANGE:` footer
-becomes a major bump. CI checks that your PR title is a valid Conventional
-Commit -- if it fails, just rename the PR title, no need to force-push.
-
-Squash-merge your PR (the default in this repo) so the PR title becomes the
-commit message on `main`.
+Release Please reads these messages to pick the next version and write the
+changelog, so the type matters. A pull request is squash-merged and its
+title becomes the commit message on `main`. If the title check fails, rename
+the pull request; you do not need to change your commits.
 
 ## What CI checks
 
-Every PR runs:
+Every pull request runs:
 
-- **PR title check** -- your PR title must be a valid Conventional Commit.
-- **App typecheck** -- `tsc --noEmit` in `app/`.
-- **Backend typecheck + synth** -- `tsc --noEmit` and `cdk synth` in
-  `backend/`, no AWS credentials, no deploy.
-- **Python checks** -- `py_compile` on every pipeline script, plus the unit
-  tests in `tests/`.
-- **Package** (`package.yml`) -- build, typecheck and test
-  `packages/daily-dispatch`, then the release checks: package metadata, the
-  tarball's file list, the workflow policy plus actionlint, and a publish
-  rehearsal against a throwaway local registry. See `docs/releasing.md`.
+- the title check, for a valid Conventional Commit
+- the app typecheck and unit tests
+- the backend typecheck, tests and `cdk synth`
+- `py_compile` and the unit tests for the pipeline
+- the builds for every platform: Android, iOS simulator, web, and the
+  desktop packages for Linux, macOS and Windows
+- the docs site build, when `docs/`, `website/` or this file changed
+- the npm package: build, typecheck and tests, then the release checks
+  (package metadata, the tarball's file list, the workflow policy plus
+  actionlint) and a publish rehearsal against a throwaway local registry.
+  See [Releasing to npm](docs/releasing-npm.md).
 
-Run the same commands locally before opening a PR; it's faster than
-waiting on the workflow.
+## Open a pull request
 
-## Working with an AI coding agent
+Fill in the pull request template. It asks what changed, how you checked
+each part, and what you were unsure about. A change you can see in the app
+needs before and after screenshots in the description. If nothing visible
+changed, say so.
 
-If you use Claude Code, Codex or a similar agent, point it at
-[AGENTS.md](AGENTS.md). It lists the same checks and rules as this file,
-plus the commands an agent must never run. `CLAUDE.md` only points there.
+Release Please keeps its own release PR open on `main`. Only the maintainer
+merges it, because merging it cuts the release and stages the npm
+package for approval. See [Releasing](docs/releasing.md).
 
-## Opening a PR
+## Conduct and security
 
-Use the PR template -- it asks what changed, how you verified it, and
-whether the UI changed. On that last point: this repo's maintainer treats
-any visual change to the app as something that needs a screenshot in the
-PR description. If your change doesn't touch the UI, say so; if it does,
-attach before/after screenshots.
-
-## Scope of a release
-
-[release-please](https://github.com/googleapis/release-please) opens a
-release PR automatically once there are release-worthy commits on `main`.
-That PR is maintainer-only to merge -- it's how the changelog and version
-number get finalized. Merging it tags `vX.Y.Z`, and the tag runs
-`.github/workflows/release.yml`, which stages the `daily-dispatch` npm
-package for a maintainer to approve on npm. `docs/releasing.md` has the
-details. Nothing else deploys: APKs are built and uploaded by the
-maintainer with `scripts/release.sh`, by hand.
-
-## Code of conduct and security
-
-See `CODE_OF_CONDUCT.md` for how we expect people to treat each other here,
-and `SECURITY.md` if you've found something that looks like a security
-issue rather than a regular bug.
+Read the [code of conduct](CODE_OF_CONDUCT.md). Report anything that looks
+like a security problem the way [SECURITY.md](SECURITY.md) describes, not in
+a public issue.
