@@ -1,3 +1,4 @@
+import * as crypto from "crypto";
 import { describe, expect, it, vi } from "vitest";
 import * as webpush from "web-push";
 import { Device } from "../lambda/devices";
@@ -107,6 +108,24 @@ describe("webpush provider", () => {
     const p = createWebPushProvider({ vapid: { ...vapid, publicKey: "abc" }, log });
     expect(p.enabled).toBe(false);
     expect(log.mock.calls[0][0]).toMatch(/webpush.*disabled/i);
+  });
+
+  it("hands the real web-push library arguments it accepts: an encrypted, VAPID-signed request", async () => {
+    const ecdh = crypto.createECDH("prime256v1");
+    ecdh.generateKeys();
+    const keys = { p256dh: ecdh.getPublicKey().toString("base64url"), auth: crypto.randomBytes(16).toString("base64url") };
+    let details: ReturnType<typeof webpush.generateRequestDetails> | undefined;
+    const send = vi.fn(async (sub: webpush.PushSubscription, payload: string, options: webpush.RequestOptions) => {
+      details = webpush.generateRequestDetails(sub, payload, options);
+      return { statusCode: 201 };
+    });
+    const p = createWebPushProvider({ vapid, send, log: vi.fn() });
+    const device = { ...webDevice("real"), subscription: { endpoint: "https://push.example.test/real", keys } };
+    expect(await p.send([device], MSG)).toMatchObject({ sent: 1, failed: 0 });
+    expect(details?.endpoint).toBe("https://push.example.test/real");
+    expect(details?.headers).toMatchObject({ TTL: 86400, "Content-Encoding": "aes128gcm" });
+    expect(String(details?.headers.Authorization)).toMatch(new RegExp(`^vapid t=.+, k=${vapid.publicKey}$`));
+    expect(details?.body?.length).toBeGreaterThan(JSON.stringify(MSG).length);
   });
 
   it("sends the message as JSON with the VAPID details and prunes gone subscriptions", async () => {

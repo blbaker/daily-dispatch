@@ -1,6 +1,9 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as events from "aws-cdk-lib/aws-events";
+import * as targets from "aws-cdk-lib/aws-events-targets";
+import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as nodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as logs from "aws-cdk-lib/aws-logs";
@@ -18,6 +21,10 @@ import * as path from "path";
  *  - API key auth done IN the function (constant-time compare) — no Cognito,
  *    no WAF, no gateway authorizer to pay for.
  *  - Logs retention 2 weeks so CloudWatch storage never accumulates.
+ *  - Push credentials live in SSM Parameter Store (standard tier, free); the
+ *    function gets parameter NAMES only, never values.
+ *  - One hourly EventBridge invocation checks Expo delivery receipts
+ *    (~720 invocations a month, inside the free tier).
  */
 export class DigestStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -26,7 +33,11 @@ export class DigestStack extends cdk.Stack {
     // Single-table design.
     //   Edition item:  PK = "EDITION#<date>"      SK = "META"
     //   Story item:    PK = "EDITION#<date>"      SK = "STORY#<nn>"
-    // Query one edition = one partition read. List editions = GSI on type.
+    //   Episode item:  PK = "EPISODE#<id>"        SK = "META"
+    //   Device:        PK = "DEVICE"              SK = <id>
+    //   Notification:  PK = "NOTIFICATION"        SK = "<ISO time>#<event>#<ref>"
+    //   Settings:      PK = "SETTINGS"            SK = "CURRENT"
+    // Query one edition = one partition read. List editions/episodes = GSI on type.
     const table = new dynamodb.Table(this, "DigestTable", {
       tableName: "daily-digest",
       partitionKey: { name: "pk", type: dynamodb.AttributeType.STRING },
@@ -62,32 +73,70 @@ export class DigestStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
+    // Private bucket for podcast episode audio. Publishers upload with a
+    // presigned PUT and apps play with a presigned GET, both handed out by
+    // the key-gated API. ~15 MB a day, a few cents a month.
+    const media = new s3.Bucket(this, "MediaBucket", {
+      bucketName: `daily-dispatch-media-${this.account}`,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      enforceSSL: true,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
+    });
+
+    // Push credentials are SSM parameters under this prefix (see
+    // docs/push-setup.md). Missing parameters leave that provider disabled.
+    const paramPrefix: string = this.node.tryGetContext("pushParamPrefix") || "/daily-dispatch/push";
+    const pushParams = {
+      EXPO_ACCESS_TOKEN_PARAM: `${paramPrefix}/expo-access-token`,
+      VAPID_PUBLIC_KEY_PARAM: `${paramPrefix}/vapid-public-key`,
+      VAPID_PRIVATE_KEY_PARAM: `${paramPrefix}/vapid-private-key`,
+      VAPID_SUBJECT_PARAM: `${paramPrefix}/vapid-subject`,
+    };
+
     // The handler is TypeScript under lambda/, bundled by esbuild at synth
     // time. The AWS SDK v3 ships with the Node.js runtime, so it stays out of
     // the bundle; everything else (web-push) is bundled in.
     const backendRoot = path.join(__dirname, "..");
     const fn = new nodejs.NodejsFunction(this, "DigestApi", {
       functionName: "daily-digest-api",
-      runtime: lambda.Runtime.NODEJS_20_X,
-      architecture: lambda.Architecture.ARM_64, // Graviton — cheapest
+      runtime: lambda.Runtime.NODEJS_24_X,
+      architecture: lambda.Architecture.ARM_64, // Graviton, cheapest
       entry: path.join(backendRoot, "lambda", "handler.ts"),
       handler: "handler",
       projectRoot: backendRoot,
       depsLockFilePath: path.join(backendRoot, "pnpm-lock.yaml"),
       bundling: { externalModules: ["@aws-sdk/*"] },
-      memorySize: 256, // small; JSON assembly only
-      timeout: cdk.Duration.seconds(10),
+      memorySize: 256, // small; JSON assembly and a few HTTPS calls
+      timeout: cdk.Duration.seconds(30), // fan-out waits on Expo and Web Push
       environment: {
         TABLE_NAME: table.tableName,
         API_KEY: apiKey,
         GSI_NAME: "byType",
         RELEASE_BUCKET: releases.bucketName,
+        MEDIA_BUCKET: media.bucketName,
+        ...pushParams,
       },
       logRetention: logs.RetentionDays.TWO_WEEKS,
     });
 
     table.grantReadWriteData(fn);
     releases.grantRead(fn); // presigned GETs are signed with the function's role
+    media.grantReadWrite(fn, "episodes/*"); // presigned PUT, GET and HEAD
+    fn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["ssm:GetParameters"],
+        resources: Object.values(pushParams).map((name) =>
+          this.formatArn({ service: "ssm", resource: "parameter", resourceName: name.replace(/^\//, "") }),
+        ),
+      }),
+    );
+
+    // Hourly Expo receipt check: prunes tokens Expo reports as unregistered.
+    new events.Rule(this, "ExpoReceiptCheck", {
+      schedule: events.Schedule.rate(cdk.Duration.hours(1)),
+      targets: [new targets.LambdaFunction(fn)],
+    });
 
     // Function URL — free, no API Gateway. Auth is the in-function API key,
     // so the URL itself is NONE (public endpoint, key-gated in code).
@@ -95,7 +144,12 @@ export class DigestStack extends cdk.Stack {
       authType: lambda.FunctionUrlAuthType.NONE,
       cors: {
         allowedOrigins: ["*"],
-        allowedMethods: [lambda.HttpMethod.GET, lambda.HttpMethod.POST],
+        allowedMethods: [
+          lambda.HttpMethod.GET,
+          lambda.HttpMethod.POST,
+          lambda.HttpMethod.PUT,
+          lambda.HttpMethod.DELETE,
+        ],
         allowedHeaders: ["content-type", "x-api-key"],
       },
     });
@@ -103,5 +157,6 @@ export class DigestStack extends cdk.Stack {
     new cdk.CfnOutput(this, "ApiUrl", { value: url.url });
     new cdk.CfnOutput(this, "TableNameOut", { value: table.tableName });
     new cdk.CfnOutput(this, "ReleaseBucketOut", { value: releases.bucketName });
+    new cdk.CfnOutput(this, "MediaBucketOut", { value: media.bucketName });
   }
 }
