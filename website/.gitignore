@@ -1,0 +1,5 @@
+# Written by scripts/sync-docs.mts from ../docs and ../CONTRIBUTING.md
+/docs/
+/build/
+/.docusaurus/
+/node_modules/
