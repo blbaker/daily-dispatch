@@ -73,7 +73,8 @@ to your app's devices.
 2. Download `google-services.json` and save it as `app/google-services.json`.
    Point `android.googleServicesFile` in `app/app.json` at it. Google treats
    the file as public identifiers, but it is specific to your Firebase
-   project, so keep it out of a public fork.
+   project, so the repo's `.gitignore` keeps it out of git. CI builds that
+   need push have to write it from a secret.
 3. In the Firebase console, open Project settings, then Service accounts, and
    click Generate new private key. This JSON file is a real secret. Never
    commit it.
