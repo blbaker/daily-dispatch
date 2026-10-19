@@ -1,0 +1,75 @@
+# Gates for the daily-dispatch npm package.
+#
+# Runs on every pull request and every push to main. release.yml also calls
+# this file (workflow_call) before it stages a publish, so a release runs the
+# same checks a pull request runs: one definition of "passing", called rather
+# than copied. tools/release/workflows-rules.ts (rule W16) keeps it that way.
+name: package
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 10.30.3
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r build
+      - run: pnpm -r typecheck
+      - run: pnpm -r test
+      - run: pnpm run release:typecheck
+      - run: pnpm run release:test
+      # The policy rules cannot see a typo in an expression; actionlint can.
+      # Pinned and checksum-verified, then required below, so a failed
+      # install turns the job red instead of quietly skipping the check.
+      - name: Install actionlint 1.7.7
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/actionlint.tgz" \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz
+          echo "023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757  $RUNNER_TEMP/actionlint.tgz" \
+            | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/actionlint.tgz" -C "$RUNNER_TEMP" actionlint
+          echo "DD_ACTIONLINT=$RUNNER_TEMP/actionlint" >> "$GITHUB_ENV"
+      - name: Release checks (metadata, tarball, workflow policy, actionlint)
+        env:
+          DD_REQUIRE_ACTIONLINT: '1'
+        run: pnpm run release:check
+
+  # Publishes the package to a throwaway registry on 127.0.0.1, installs it
+  # by name in an empty directory and runs the installed CLI. A tarball-path
+  # install cannot catch a broken bin, exports map or files list the way an
+  # install by name does. Nothing leaves the runner except the verdaccio
+  # download itself.
+  registry-rehearsal:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 10.30.3
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run release:rehearse

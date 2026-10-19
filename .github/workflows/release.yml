@@ -1,0 +1,94 @@
+# Stage a release of the daily-dispatch npm package, and only on a version tag.
+#
+# An npm version number is burned for good once published, and a public
+# package can be deprecated but never taken back. So the safety here is in
+# the structure, and tools/release/workflows-rules.ts checks each point:
+#
+#   1. Only a pushed v* tag reaches this file. No branch, no pull request.
+#   2. It cannot run before the gates: `needs: gates`, and `gates` calls
+#      package.yml, the same workflow every pull request runs.
+#   3. It is dry by default. `npm publish --dry-run` runs on every tag, so
+#      packing and auth are exercised between releases. The real step is
+#      separate and runs only when the repository variable
+#      DD_PUBLISH_ENABLED is 'true', so arming it is a settings change with
+#      an audit trail rather than a commit.
+#   4. It holds no npm token. GitHub mints a short-lived OIDC token for this
+#      job (id-token: write, on this job only), npm exchanges it for a
+#      one-time publish credential, and attaches provenance.
+#   5. The publish is staged, not live. `npm stage publish` parks the version
+#      on npm, and it goes public only when a maintainer approves it with 2FA
+#      on npmjs.com or with `npm stage approve`. The trusted publisher on
+#      npmjs.com allows staged publishing only.
+#
+# One-time setup on npm and GitHub is in docs/releasing.md.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    uses: ./.github/workflows/package.yml
+
+  publish:
+    needs: [gates]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # The trusted publisher on npmjs.com names this workflow file and this
+    # environment. The environment adds a manual approval only once a
+    # required reviewer is configured for it in the repository settings;
+    # until then GitHub creates it on first use with no rules.
+    environment: npm-publish
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 10.30.3
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing needs npm 11.5.1 or newer and staged publishing
+      # 11.15.0 or newer. The npm bundled with Node 24 can be older.
+      - name: Pin npm for trusted and staged publishing
+        run: |
+          npm install -g npm@11.21.1
+          npm --version
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r build
+
+      # Publishing v0.1.0's build under the v0.2.0 tag cannot be undone: the
+      # version is spent and the tag names something never released under
+      # it. The metadata gate fails unless the tag is v<package version>.
+      - name: Release metadata, including the tag
+        run: node tools/release/metadata.ts --tag "$GITHUB_REF"
+
+      - name: Tarball contents
+        run: node tools/release/pack.ts
+
+      - name: Publish (dry run)
+        working-directory: packages/daily-dispatch
+        run: npm publish --dry-run --provenance
+
+      # The only step that changes anything outside GitHub. It needs a
+      # version tag AND the repository variable, and even then the version
+      # stays staged until a maintainer approves it.
+      - name: Stage the release for maintainer approval
+        if: vars.DD_PUBLISH_ENABLED == 'true'
+        working-directory: packages/daily-dispatch
+        run: npm stage publish --provenance
+
+      - name: Publishing is turned off
+        if: vars.DD_PUBLISH_ENABLED != 'true'
+        run: |
+          echo "::notice::Dry run only. Set the repository variable"
+          echo "::notice::DD_PUBLISH_ENABLED=true to stage releases on npm."
