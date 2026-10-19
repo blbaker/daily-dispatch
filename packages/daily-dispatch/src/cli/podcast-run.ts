@@ -1,3 +1,5 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { DispatchError } from '../errors.ts';
 import { loadConfig, withEnvFile } from '../schedule/config.ts';
@@ -25,6 +27,7 @@ made per local date; the state file remembers which dates are done.
   --out <dir>         Episodes go in <dir>/<date>/ (default ~/.local/share/daily-dispatch/episodes)
   --stories <file>    Local digest instead of the backend; {date} becomes YYYY-MM-DD
   --env-file <file>   KEY=VALUE file loaded first (default ~/.config/daily-dispatch/env)
+  --log <file>        Also append each line, with the time, to this file
 
 Exit codes: 0 made, not due, or waiting for stories; 1 the run failed;
 2 the settings or arguments are wrong. See docs/daily-podcast.md.`;
@@ -40,6 +43,7 @@ const OPTIONS = {
   out: { type: 'string' },
   stories: { type: 'string' },
   'env-file': { type: 'string' },
+  log: { type: 'string' },
 } as const;
 
 export async function podcastRun(argv: readonly string[], io: CliIo): Promise<number> {
@@ -52,6 +56,33 @@ export async function podcastRun(argv: readonly string[], io: CliIo): Promise<nu
   if (flags['if-due'] && flags.date !== undefined) throw new DispatchError('usage', '--date cannot be combined with --if-due');
 
   const at = (p: string): string => resolvePath(p, io.cwd, io.env);
+  const clock = io.now ?? (() => new Date());
+  const now = clock();
+  // A scheduled run's output lands in a log, where each line needs its time.
+  const stamped = flags['if-due'] === true || flags.log !== undefined;
+  const lines: string[] = [];
+  const log = (line: string): void => {
+    const ts = clock().toISOString();
+    io.stdout(stamped ? `${ts} ${line}` : line);
+    lines.push(`${ts} ${line}`);
+  };
+  try {
+    return await runWith(flags, io, at, now, log);
+  } catch (e) {
+    lines.push(`${clock().toISOString()} error: ${(e as Error).message}`);
+    throw e;
+  } finally {
+    if (flags.log !== undefined) {
+      const file = at(flags.log);
+      await fs.mkdir(path.dirname(file), { recursive: true });
+      await fs.appendFile(file, lines.map((l) => `${l}\n`).join(''));
+    }
+  }
+}
+
+type Flags = ReturnType<typeof parseArgs<{ args: string[]; options: typeof OPTIONS; strict: true; allowPositionals: false }>>['values'];
+
+async function runWith(flags: Flags, io: CliIo, at: (p: string) => string, now: Date, log: (line: string) => void): Promise<number> {
   const defaults = defaultPaths(io.env);
   const env = await withEnvFile(io.env, flags['env-file'] !== undefined ? at(flags['env-file']) : defaults.envFile);
   const configPath = flags.config !== undefined ? at(flags.config) : defaults.config;
@@ -74,8 +105,8 @@ export async function podcastRun(argv: readonly string[], io: CliIo): Promise<nu
     fetchImpl: io.fetchImpl,
     ...(io.spawnImpl ? { spawnImpl: io.spawnImpl } : {}),
     sleep: io.sleep,
-    now: (io.now ?? (() => new Date()))(),
-    log: io.stdout,
+    now,
+    log,
   });
   // Not due, waiting for stories and another run in progress are all normal
   // for a job that polls; failures throw and exit non-zero.

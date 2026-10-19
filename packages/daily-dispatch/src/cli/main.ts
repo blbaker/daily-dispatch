@@ -3,6 +3,8 @@ import type { spawn } from 'node:child_process';
 import { isDispatchError } from '../errors.ts';
 import { podcastMake, PODCAST_MAKE_HELP } from './podcast-make.ts';
 import { podcastRun, PODCAST_RUN_HELP } from './podcast-run.ts';
+import { schedule } from './schedule.ts';
+import type { ExecFn } from '../schedule/install.ts';
 import type { Env } from '../context.ts';
 
 /** Everything the CLI touches outside itself, injectable for tests. */
@@ -16,6 +18,13 @@ export interface CliIo {
   sleep: (ms: number) => Promise<void>;
   /** Clock for the daily schedule. Defaults to the real time. */
   now?: () => Date;
+  /** For `schedule`: the OS, scheduler commands and the paths the job will run. Tests fake all of these. */
+  platform?: NodeJS.Platform;
+  exec?: ExecFn;
+  nodePath?: string;
+  scriptPath?: string;
+  uid?: number;
+  exists?: (p: string) => Promise<boolean>;
 }
 
 const HELP = `Usage: daily-dispatch <command> [options]
@@ -24,6 +33,7 @@ Commands:
   podcast make    Write and voice a podcast episode from a stories file
   podcast run     Make today's episode from the daily podcast settings
                   (--if-due: only when the schedule says so)
+  schedule        install, uninstall or show the OS job for the daily episode
 
 Options:
   -h, --help      Show help (also: daily-dispatch podcast make --help)
@@ -55,6 +65,7 @@ export async function run(argv: readonly string[], io: CliIo): Promise<number> {
       }
       return await podcastMake(rest, io);
     }
+    if (command === 'schedule') return await schedule(argv.slice(1), io);
     if (command === 'podcast' && sub === 'run') {
       if (rest.includes('-h') || rest.includes('--help')) {
         io.stdout(PODCAST_RUN_HELP);

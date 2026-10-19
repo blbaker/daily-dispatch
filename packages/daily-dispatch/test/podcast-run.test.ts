@@ -139,3 +139,18 @@ test('podcast run --if-due: a run already in progress (lock file) makes the next
   assert.match(t.text(), /another run is in progress/);
   assert.equal(t.s.calls.length, 0);
 });
+
+test('podcast run --if-due stamps each line with the time; --log appends them, and the error, to a file', async () => {
+  const t = await setup({ podcast: { enabled: false }, now: '2026-10-19T15:00:00Z' });
+  const log = path.join(t.home, 'logs', 'podcast.log');
+  assert.equal(await t.go('--log', log), 0, t.errors());
+  assert.equal(await t.go('--log', log), 0, t.errors());
+  assert.match(t.text(), /^2026-10-19T15:00:00\.000Z not due: disabled/m);
+  const lines = (await fs.readFile(log, 'utf8')).trim().split('\n');
+  assert.equal(lines.length, 2, 'appended, not overwritten');
+  assert.match(lines[0] ?? '', /^2026-10-19T15:00:00\.000Z not due: disabled/);
+  const bad = await setup({ podcast: { voice: 'openai' }, env: { OPENAI_API_KEY: 'sk' }, now: '2026-10-19T12:00:00Z' });
+  const badLog = path.join(bad.home, 'podcast.log');
+  assert.equal(await bad.go('--log', badLog), 2);
+  assert.match(await fs.readFile(badLog, 'utf8'), /^2026-10-19T12:00:00\.000Z error: openai is a paid provider/m);
+});
