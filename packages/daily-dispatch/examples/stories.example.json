@@ -1,0 +1,25 @@
+{
+  "stories": [
+    {
+      "headline": "City library starts lending tool kits",
+      "source": "Example Gazette",
+      "summary": "The downtown branch now lends drills, stud finders and a soldering station for two weeks at a time. The library says 140 people joined the waiting list in the first week.",
+      "url": "https://news.example.com/library-tools"
+    },
+    {
+      "headline": "A static site generator written in 400 lines",
+      "source": "example.dev",
+      "summary": [
+        "A developer published a static site generator in about 400 lines of TypeScript.",
+        "It reads Markdown, applies one HTML template and writes plain files, with no plugins."
+      ],
+      "url": "https://example.dev/tiny-ssg"
+    },
+    {
+      "headline": "Survey: most home routers never get a firmware update",
+      "source": "Example Networking Weekly",
+      "summary": "A survey of 2,000 households found that 61 percent had never updated their router's firmware. The authors suggest turning on automatic updates where the router supports it.",
+      "url": "https://networking.example.org/router-survey"
+    }
+  ]
+}
