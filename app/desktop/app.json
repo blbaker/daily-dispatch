@@ -1,0 +1,8 @@
+{
+  "name": "DailyDispatch",
+  "displayName": "Daily Dispatch",
+  "window": {
+    "width": 480,
+    "height": 900
+  }
+}

@@ -17,6 +17,8 @@ coverage/
 app/android/
 app/ios/
 app/web-build/
+app/desktop/build/
+app/desktop/dist/
 *.apk
 *.aab
 *.ipa
