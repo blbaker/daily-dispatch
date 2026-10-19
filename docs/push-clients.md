@@ -112,7 +112,12 @@ needs internet access.
 
 - Delivery from the real push services (FCM, APNs, a browser push service) to
   a device. That needs the credentials above. The web run delivers its push
-  through DevTools, not through the push service.
+  through DevTools, not through the push service. Sending a real Web Push to
+  the subscription Playwright's Chromium creates does not work either: Google's
+  push service answers 410 ("push subscription has unsubscribed or expired")
+  straight after the subscribe. The likely cause is that this open-source
+  Chromium build is not one Google's service accepts; that was not confirmed.
+  Real web delivery still needs a check in Chrome, Edge or Firefox.
 - A real click on an OS notification. The service worker's click handler is
   tested against a fake worker scope, and the app's handling of the two
   messages it produces is tested in Chromium.
