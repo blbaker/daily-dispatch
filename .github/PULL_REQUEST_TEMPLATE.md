@@ -13,11 +13,11 @@ Describe what you actually ran and what you saw, not just "tests pass."
 
 ## Acceptance criteria
 
-What does "done" look like for this change? List the specific behavior a
-reviewer can check.
+What does "done" look like for this change? List each behavior a reviewer
+can check, and how you checked it (command, test name, or screenshot).
 
-- 
-- 
+- [ ] Criterion: ... Checked by: ...
+- [ ] Criterion: ... Checked by: ...
 
 ## Does this change the app's UI?
 
