@@ -1,3 +1,17 @@
+# Opens and updates the release PR from Conventional Commits, and, once a
+# maintainer merges that PR, tags the release (v<version>) and creates the
+# GitHub release. It never publishes anything: release.yml (tag-only, gated
+# on DD_PUBLISH_ENABLED) owns that.
+#
+# A tag created with the default GITHUB_TOKEN does not trigger other
+# workflows. GitHub suppresses those events on purpose, to stop recursive
+# workflow chains, so with the default token the v* tag from a merged release
+# PR would never start release.yml. The fix is a one-time repository secret,
+# RELEASE_PLEASE_TOKEN: a fine-grained personal access token (or GitHub App
+# token) with contents and pull-requests write on this repository. Until it
+# exists this workflow still opens and updates the release PR; only the
+# automatic start of release.yml after a merge is missing. See
+# docs/releasing.md.
 name: release-please
 
 on:
@@ -15,8 +29,10 @@ concurrency:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4.3.0
+      - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4.4.1
         with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
