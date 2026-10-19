@@ -12,6 +12,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, Linking, Platform } from "react-native";
+import { currentServer, serverNow } from "../settings";
 import { adapterFactories } from "./adapters";
 import { createPushApi } from "./api";
 import { createNotifications, type Notifications } from "./controller";
@@ -23,10 +24,8 @@ import type {
 export type { FeedNotification, NotificationPrefs, NotificationStatus, OpenTarget, PrefsState, PushData };
 export { DEFAULT_PREFS };
 
-const api = createPushApi({
-  baseUrl: process.env.EXPO_PUBLIC_API_URL || "",
-  apiKey: process.env.EXPO_PUBLIC_API_KEY || "",
-});
+// The server comes from Settings (or the build), read on every request.
+const api = createPushApi({ baseUrl: () => serverNow().baseUrl, apiKey: () => serverNow().apiKey });
 const storage = AsyncStorage;
 const prefs = createPrefsStore({ api, storage });
 let instance: Notifications | null = null;
@@ -109,6 +108,7 @@ export function useNotifications(handlers: { onOpen(t: OpenTarget): void; onRece
     const offOpen = n.onOpen((t) => ref.current.onOpen(t));
     const offReceive = n.onReceive((d) => ref.current.onReceive?.(d));
     void (async () => {
+      await currentServer(); // registration needs this device's saved server
       const p = await prefs.get();
       await n.start({ prompt: p.enabled && n.channel !== "webpush" });
       await prefs.sync();

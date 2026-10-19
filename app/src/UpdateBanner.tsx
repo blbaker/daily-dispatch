@@ -7,6 +7,7 @@ import {
   Release, checkForUpdate, cleanupOldDownloads, downloadUpdate, installUpdate,
   isDownloaded,
 } from "./updates";
+import { onUpdateCheckRequest } from "./updateRequests";
 
 type Phase = "hidden" | "available" | "downloading" | "ready" | "error";
 const RECHECK_MS = 6 * 60 * 60 * 1000;
@@ -65,6 +66,9 @@ export default function UpdateBanner({
     const iv = setInterval(() => check(true), RECHECK_MS);
     return () => { sub.remove(); clearInterval(iv); };
   }, [check]);
+
+  // Settings > About > Check now.
+  useEffect(() => onUpdateCheckRequest(() => { void check(true); }), [check]);
 
   const startDownload = async () => {
     if (!rel || busy.current) return;

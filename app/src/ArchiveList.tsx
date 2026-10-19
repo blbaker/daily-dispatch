@@ -58,11 +58,11 @@ export default function ArchiveList({
             {!theme.eink && <View style={[StyleSheet.absoluteFill as any, { backgroundColor: "rgba(0,0,0,0.4)" }]} />}
             <View style={s.edBody}>
               {i === 0 ? <Text style={s.latestBadge}>LATEST</Text> : null}
-              <Text style={[s.edDate, { color: theme.eink ? "#000" : "#fff" }]}>{ed.date}</Text>
-              <Text style={[s.edLine, { color: theme.eink ? "#333" : "rgba(255,255,255,0.9)" }]}>
+              <Text style={[s.edDate, { color: theme.eink ? theme.textLight : "#fff" }]}>{ed.date}</Text>
+              <Text style={[s.edLine, { color: theme.eink ? theme.mutedDark : "rgba(255,255,255,0.9)" }]}>
                 {ed.weekday} · {ed.count} {ed.count === 1 ? "link" : "links"}{ed.inProgress ? " so far" : ""}
               </Text>
-              <Text style={[s.edLead, { color: theme.eink ? "#000" : "#fff" }]} numberOfLines={2}>{ed.lead}</Text>
+              <Text style={[s.edLead, { color: theme.eink ? theme.textLight : "#fff" }]} numberOfLines={2}>{ed.lead}</Text>
             </View>
           </Pressable>
         );

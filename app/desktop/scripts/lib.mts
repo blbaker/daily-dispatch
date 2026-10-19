@@ -28,6 +28,11 @@ export function loadAppEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.Process
       if (out[key] === undefined) out[key] = value;
     }
   }
+  // Settings > About shows the version. The desktop bundle has no
+  // expo-constants, so the version from app/app.json is inlined instead.
+  const expo = JSON.parse(readFileSync(join(appRoot, "app.json"), "utf8")).expo;
+  out.EXPO_PUBLIC_APP_VERSION ??= String(expo.version ?? "");
+  out.EXPO_PUBLIC_APP_BUILD ??= String(expo.android?.versionCode ?? "");
   return out;
 }
 

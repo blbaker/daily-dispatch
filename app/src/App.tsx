@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   View, Text, Pressable, ActivityIndicator, AppState,
-  BackHandler, Platform, ToastAndroid,
+  BackHandler, Platform, ToastAndroid, useColorScheme,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -14,10 +14,10 @@ import DigestView from "./DigestView";
 import ArchiveList from "./ArchiveList";
 import NotificationBanner from "./NotificationBanner";
 import { openEpisode, useNotifications, type OpenTarget } from "./notifications";
+import { EINK_BUILD, serverNow, useSettings, useSettingsSync } from "./settings";
+import SettingsScreen from "./settings/ui/SettingsScreen";
 
-const EINK = String(process.env.EXPO_PUBLIC_EINK) === "true";
-
-type Tab = "today" | "archive";
+type Tab = "today" | "archive" | "settings";
 
 export default function App() {
   return (
@@ -28,8 +28,17 @@ export default function App() {
 }
 
 function Main() {
-  const theme = makeTheme(EINK);
+  const settings = useSettings();
+  useSettingsSync();
+  // E-ink mode is the Boox build, or the Reading switch on any other build.
+  const EINK = EINK_BUILD || !!settings?.reading.eink;
+  const theme = makeTheme(EINK, {
+    scheme: useColorScheme() === "dark" ? "dark" : "light",
+    textScale: settings?.reading.textScale ?? 1,
+  });
   const s = styles(theme);
+  // The picker sheet Settings opens; drawn after the tab bar so it covers it.
+  const [overlay, setOverlay] = useState<React.ReactNode>(null);
   // Real system-bar insets (Android draws edge-to-edge since SDK 54).
   const insets = useSafeAreaInsets();
   const [bannerShown, setBannerShown] = useState(false);
@@ -60,7 +69,9 @@ function Main() {
       return null;
     }
   }, []);
-  useEffect(() => { loadList(); }, [loadList]);
+  // Load on launch, and again when Settings points this device at another server.
+  const server = settings ? `${serverNow().baseUrl}|${serverNow().apiKey}` : null;
+  useEffect(() => { if (server !== null) loadList(); }, [loadList, server]);
 
   // A tapped notification opens its edition (on Today when it is the newest)
   // or plays its episode. A push that arrives while the app is open refreshes
@@ -118,7 +129,7 @@ function Main() {
   backRef.current = () => {
     if (article !== null) { setArticle(null); return true; }
     if (tab === "archive" && openEd) { setOpenEd(null); return true; }
-    if (tab === "archive") { setTab("today"); return true; }
+    if (tab === "archive" || tab === "settings") { setTab("today"); return true; }
     const now = Date.now();
     if (now - lastBack.current < 2000) return false; // let Android exit
     lastBack.current = now;
@@ -134,20 +145,22 @@ function Main() {
 
   const switchTab = (t: Tab) => {
     setArticle(null);
-    if (t === "today") { setTab("today"); }
-    else { setTab("archive"); setOpenEd(null); }
+    if (t === "archive") { setTab("archive"); setOpenEd(null); }
+    else setTab(t);
   };
 
   // White status-bar icons over the photo hero and over the dark update strip.
-  const heroOnTop = !err && !(tab === "archive" && !openEd) && !!digestId && article === null;
-  const lightBar = !EINK && (bannerShown || (heroOnTop && heroUnderStatus));
+  const heroOnTop = tab !== "settings" && !err && !(tab === "archive" && !openEd) && !!digestId && article === null;
+  const lightBar = theme.scheme === "dark" || (!EINK && (bannerShown || (heroOnTop && heroUnderStatus)));
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.articleBg }}>
       <StatusBar style={lightBar ? "light" : "dark"} />
       <UpdateBanner eink={EINK} topInset={insets.top} onVisibleChange={setBannerShown} />
       <View style={{ flex: 1 }}>
-        {err ? (
+        {tab === "settings" ? (
+          <SettingsScreen theme={theme} topInset={topInset} bottomInset={insets.bottom} setOverlay={setOverlay} />
+        ) : err ? (
           <ErrScreen theme={theme} err={err} onRetry={loadList} />
         ) : tab === "archive" && !openEd ? (
           <ArchiveList
@@ -178,15 +191,23 @@ function Main() {
         )}
       </View>
 
-      {/* bottom nav: Today | Archive — padded above the system nav bar */}
-      <View style={[s.tabbar, { paddingBottom: insets.bottom + 10 }]}>
+      {/* bottom nav: Today | Archive | Settings, padded above the system nav bar */}
+      <View style={[s.tabbar, tab === "settings" && s.tabbarGutter]}>
+      <View style={[s.tabRow, tab === "settings" && s.tabRowEdge, { paddingBottom: insets.bottom + 10 }]}>
         <Pressable style={s.tab} onPress={() => switchTab("today")}>
           <Text style={[s.tabTxt, tab === "today" && s.tabActive]}>Today</Text>
         </Pressable>
         <Pressable style={s.tab} onPress={() => switchTab("archive")}>
           <Text style={[s.tabTxt, tab === "archive" && s.tabActive]}>Archive</Text>
         </Pressable>
+        <Pressable style={s.tab} onPress={() => switchTab("settings")} testID="tab-settings">
+          <Text style={[s.tabTxt, tab === "settings" && s.tabActive]}>Settings</Text>
+        </Pressable>
       </View>
+      </View>
+      {tab === "settings" && overlay ? (
+        <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>{overlay}</View>
+      ) : null}
       <NotificationBanner eink={EINK} topInset={insets.top} onOpen={openTarget} />
     </View>
   );
