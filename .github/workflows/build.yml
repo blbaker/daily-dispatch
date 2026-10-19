@@ -1,0 +1,290 @@
+name: Build
+
+# Builds every app target and uploads each result as an artifact:
+#   - Android APKs, phone and e-ink variants
+#   - iOS app for the simulator, unsigned
+#   - the static web export
+#   - desktop packages for Linux, macOS and Windows on the Impeller engine
+# release-artifacts.yml calls this workflow for a version tag and attaches
+# the same files to the GitHub Release.
+#
+# Nothing here submits to a store or deploys anything. CI builds have no API
+# URL or key baked in; people point the app at their own backend.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref to build. Empty means the ref that started the run.
+        type: string
+        default: ""
+      retention-days:
+        description: Days to keep the uploaded artifacts.
+        type: number
+        default: 7
+    secrets:
+      ANDROID_KEYSTORE_BASE64:
+        required: false
+      ANDROID_KEYSTORE_PASSWORD:
+        required: false
+      ANDROID_KEY_ALIAS:
+        required: false
+      ANDROID_KEY_PASSWORD:
+        required: false
+
+permissions: {}
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  EXPO_PUBLIC_API_URL: ""
+  EXPO_PUBLIC_API_KEY: ""
+
+jobs:
+  ci-scripts:
+    name: CI script tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - run: node --test 'scripts/ci/*.test.mts'
+
+  android:
+    name: Android APKs (phone, e-ink)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "17"
+      # Decide the signing key before the slow build, so a broken secret fails
+      # in seconds. Pull requests never see the release key.
+      - name: Choose the signing key
+        id: signing
+        env:
+          KEYSTORE_BASE64: ${{ github.event_name != 'pull_request' && secrets.ANDROID_KEYSTORE_BASE64 || '' }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ github.event_name != 'pull_request' && secrets.ANDROID_KEYSTORE_PASSWORD || '' }}
+          ANDROID_KEY_ALIAS: ${{ github.event_name != 'pull_request' && secrets.ANDROID_KEY_ALIAS || '' }}
+          ANDROID_KEY_PASSWORD: ${{ github.event_name != 'pull_request' && secrets.ANDROID_KEY_PASSWORD || '' }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::notice::No release keystore in this run. The APKs are signed with the public debug key and their names end in -debug-signed."
+            exit 0
+          fi
+          for name in ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::ANDROID_KEYSTORE_BASE64 is set but $name is not. Add it as a repository secret."
+              exit 1
+            fi
+          done
+          keystore="$RUNNER_TEMP/release.jks"
+          if ! printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$keystore" 2> /dev/null; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 is not valid base64. Store the output of: base64 -w0 release.jks"
+            exit 1
+          fi
+          if ! keytool -list -keystore "$keystore" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" > /dev/null 2>&1; then
+            echo "::error::The keystore does not open with ANDROID_KEYSTORE_PASSWORD, or has no key named ANDROID_KEY_ALIAS."
+            exit 1
+          fi
+          echo "keystore=$keystore" >> "$GITHUB_OUTPUT"
+      - run: npm ci --legacy-peer-deps
+      - name: Generate the native Android project
+        run: npx expo prebuild --platform android --no-install
+      - name: Build and check the APKs
+        env:
+          ANDROID_KEYSTORE_FILE: ${{ steps.signing.outputs.keystore }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ steps.signing.outputs.keystore && secrets.ANDROID_KEYSTORE_PASSWORD || '' }}
+          ANDROID_KEY_ALIAS: ${{ steps.signing.outputs.keystore && secrets.ANDROID_KEY_ALIAS || '' }}
+          ANDROID_KEY_PASSWORD: ${{ steps.signing.outputs.keystore && secrets.ANDROID_KEY_PASSWORD || '' }}
+        run: node ../scripts/ci/build-android.mts --out dist-android
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-android
+          path: app/dist-android/*.apk
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: ${{ inputs.retention-days || 7 }}
+
+  ios:
+    name: iOS simulator app (unsigned)
+    runs-on: macos-15
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci --legacy-peer-deps
+      - name: Generate the native iOS project and install pods
+        run: |
+          xcodebuild -version
+          pod --version
+          npx expo prebuild --platform ios
+      # A simulator build needs no signing identity, so this runs without an
+      # Apple account. Device builds need one and are not made here.
+      - name: Build for the simulator
+        run: >-
+          xcodebuild -quiet
+          -workspace ios/DailyDispatch.xcworkspace -scheme DailyDispatch
+          -configuration Release -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath build/ios
+          CODE_SIGNING_ALLOWED=NO
+          build
+      - name: Check and archive the app
+        run: |
+          app=build/ios/Build/Products/Release-iphonesimulator/DailyDispatch.app
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist"
+          if [ ! -s "$app/main.jsbundle" ]; then
+            echo "::error::$app has no main.jsbundle, so it would need a dev server to start."
+            exit 1
+          fi
+          mkdir -p dist-ios
+          tar -czf dist-ios/daily-dispatch-ios-simulator.tar.gz -C "$(dirname "$app")" DailyDispatch.app
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-ios
+          path: app/dist-ios/daily-dispatch-ios-simulator.tar.gz
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: ${{ inputs.retention-days || 7 }}
+
+  web:
+    name: Web export
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci --legacy-peer-deps
+      - run: npx expo export --platform web --output-dir dist-web/daily-dispatch-web
+      - name: Check and archive the export
+        run: |
+          out=dist-web/daily-dispatch-web
+          if [ ! -s "$out/index.html" ] || ! compgen -G "$out/_expo/static/js/web/*.js" > /dev/null; then
+            echo "::error::The web export has no index.html or no JS bundle."
+            exit 1
+          fi
+          tar -czf dist-web/daily-dispatch-web.tar.gz -C dist-web daily-dispatch-web
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-web
+          path: app/dist-web/daily-dispatch-web.tar.gz
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: ${{ inputs.retention-days || 7 }}
+
+  desktop:
+    name: Desktop (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: linux-x64
+          - os: macos-15
+            target: darwin-arm64
+          - os: windows-2025
+            target: win32-x64
+    defaults:
+      run:
+        shell: bash
+        working-directory: app/desktop
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/desktop/package-lock.json
+      # The engine links EGL, GLES, X11, OpenSSL 3 and libatomic. Mesa's
+      # llvmpipe renders the headless gate on a runner with no GPU.
+      - name: Install the engine's Linux libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libegl-mesa0 libgles2 libgl1-mesa-dri libx11-6 libssl3 libatomic1 fontconfig fonts-dejavu-core
+          fc-match sans-serif
+      # npm installs the engine package for this OS and CPU from the
+      # optionalDependencies of react-native-impeller-platform.
+      - run: npm ci
+      - name: Typecheck the desktop app and the CI scripts
+        if: runner.os == 'Linux'
+        run: |
+          npm run typecheck
+          npx tsc -p ../../scripts/ci
+      - name: Headless render gate
+        run: npm run gate
+      - name: Package
+        run: npm run package
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-desktop-${{ matrix.target }}
+          path: app/desktop/dist/daily-dispatch-${{ matrix.target }}.*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: ${{ inputs.retention-days || 7 }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: gate-${{ matrix.target }}
+          path: app/desktop/build/gate
+          retention-days: 7
