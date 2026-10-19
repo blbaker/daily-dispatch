@@ -177,9 +177,6 @@ and before `git push`. History rewrites are the maintainer's to run.
 
 ## Open items for other work
 
-- `AGENTS.md` (the single agent instruction file) and `CLAUDE.md` pointing
-  to it are not in the tree yet. The tooling that writes them needs the
-  maintainer's approval.
 - Files still over 300 lines: `app/src/App.tsx` (534) and
   `pipeline/push_to_api.py` (355).
 - `cdk synth` warns that the Lambda's `nodejs20.x` runtime is deprecated;

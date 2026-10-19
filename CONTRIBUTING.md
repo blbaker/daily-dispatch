@@ -38,8 +38,9 @@ npm run web              # run it in a browser
 
 ```
 cd backend
-pnpm install --frozen-lockfile
-pnpm exec tsc --noEmit  # typecheck
+pnpm install --frozen-lockfile --ignore-workspace  # backend keeps its own lockfile
+pnpm typecheck
+pnpm test
 pnpm exec cdk synth     # renders the CloudFormation template, no AWS credentials needed
 ```
 
@@ -96,6 +97,12 @@ Every PR runs:
 
 Run the same commands locally before opening a PR; it's faster than
 waiting on the workflow.
+
+## Working with an AI coding agent
+
+If you use Claude Code, Codex or a similar agent, point it at
+[AGENTS.md](AGENTS.md). It lists the same checks and rules as this file,
+plus the commands an agent must never run. `CLAUDE.md` only points there.
 
 ## Opening a PR
 
