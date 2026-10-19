@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import type { spawn } from 'node:child_process';
 import { isDispatchError } from '../errors.ts';
 import { podcastMake, PODCAST_MAKE_HELP } from './podcast-make.ts';
+import { podcastRun, PODCAST_RUN_HELP } from './podcast-run.ts';
 import type { Env } from '../context.ts';
 
 /** Everything the CLI touches outside itself, injectable for tests. */
@@ -13,12 +14,16 @@ export interface CliIo {
   fetchImpl: typeof fetch;
   spawnImpl?: typeof spawn;
   sleep: (ms: number) => Promise<void>;
+  /** Clock for the daily schedule. Defaults to the real time. */
+  now?: () => Date;
 }
 
 const HELP = `Usage: daily-dispatch <command> [options]
 
 Commands:
   podcast make    Write and voice a podcast episode from a stories file
+  podcast run     Make today's episode from the daily podcast settings
+                  (--if-due: only when the schedule says so)
 
 Options:
   -h, --help      Show help (also: daily-dispatch podcast make --help)
@@ -50,13 +55,20 @@ export async function run(argv: readonly string[], io: CliIo): Promise<number> {
       }
       return await podcastMake(rest, io);
     }
+    if (command === 'podcast' && sub === 'run') {
+      if (rest.includes('-h') || rest.includes('--help')) {
+        io.stdout(PODCAST_RUN_HELP);
+        return 0;
+      }
+      return await podcastRun(rest, io);
+    }
     io.stderr(`error: unknown command "${argv.slice(0, 2).join(' ')}"\n\n${HELP}`);
     return 2;
   } catch (e) {
     if (isDispatchError(e)) {
       io.stderr(`error: ${e.message}`);
       for (const d of e.details.slice(0, 15)) if (d !== '') io.stderr(`  ${d}`);
-      if (e.kind === 'usage') io.stderr('\nRun "daily-dispatch podcast make --help" for the options.');
+      if (e.kind === 'usage') io.stderr(`\nRun "daily-dispatch ${argv.slice(0, 2).join(' ')} --help" for the options.`);
       return USAGE_KINDS.has(e.kind) ? 2 : 1;
     }
     io.stderr(`error: ${(e as Error).stack ?? String(e)}`);
