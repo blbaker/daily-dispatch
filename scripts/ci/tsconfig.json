@@ -1,0 +1,18 @@
+{
+  "//": "Typecheck for the CI scripts. They have no package of their own, so this borrows TypeScript and @types/node from app/desktop: npm --prefix app/desktop ci, then app/desktop/node_modules/.bin/tsc -p scripts/ci",
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "typeRoots": ["../../app/desktop/node_modules/@types"]
+  },
+  "include": ["*.mts"]
+}
