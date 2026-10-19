@@ -56,6 +56,8 @@ jobs:
           cache-dependency-path: backend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec tsc --noEmit
+      # Unit tests mock DynamoDB, SSM, Expo and Web Push; no network, no AWS.
+      - run: pnpm exec vitest run
       # cdk synth needs no AWS credentials: it only renders the template from
       # source, it never calls AWS. No deploy, no diff against a real account.
       - run: pnpm exec cdk synth --quiet
