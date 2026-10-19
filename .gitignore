@@ -2,6 +2,9 @@
 node_modules/
 .pnpm-store/
 
+# Package build output
+packages/*/dist/
+
 # App build output
 app/.expo/
 app/android/
