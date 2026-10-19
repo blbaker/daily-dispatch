@@ -2,6 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "bump-minor-pre-major": true,
   "bump-patch-for-minor-pre-major": false,
+  "include-component-in-tag": false,
   "draft": false,
   "prerelease": false,
   "packages": {
@@ -11,8 +12,8 @@
       "extra-files": [
         {
           "type": "json",
-          "path": "app/app.json",
-          "jsonpath": "$.expo.version"
+          "path": "packages/daily-dispatch/package.json",
+          "jsonpath": "$.version"
         }
       ]
     }
