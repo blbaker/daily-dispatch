@@ -78,8 +78,8 @@ def _existing_urls():
 
 
 def _save(url, push):
-    """Append the link to the digest store so the 5pm job can build the
-    digest. Failure here must never block the instant forward. Skips URLs
+    """Append the link to the digest store so the daily digest job can
+    build the digest. Failure here must never block the instant forward. Skips URLs
     already in the store so a startup backfill can't duplicate a live
     capture."""
     try:
