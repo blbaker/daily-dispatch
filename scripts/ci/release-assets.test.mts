@@ -10,6 +10,8 @@ import { checkAssets, readAssets, sha256Sums, SUMS_FILE, type AssetFile } from "
 
 const ZIP = Buffer.from([0x50, 0x4b, 0x03, 0x04, 0, 0, 0, 0]);
 const GZIP = Buffer.from([0x1f, 0x8b, 8, 0, 0, 0, 0, 0]);
+const NOTICES = Buffer.from("Third-party notices: Daily Dispatch\n");
+const NOTICE_TARGETS = ["android", "ios", "web", "linux-x64", "darwin-arm64", "win32-x64"];
 const script = fileURLToPath(new URL("./release-assets.mts", import.meta.url));
 
 function complete(): AssetFile[] {
@@ -23,6 +25,7 @@ function complete(): AssetFile[] {
     gz("daily-dispatch-linux-x64.tar.gz"),
     gz("daily-dispatch-darwin-arm64.tar.gz"),
     zip("daily-dispatch-win32-x64.zip"),
+    ...NOTICE_TARGETS.map((t) => ({ name: `THIRD_PARTY_NOTICES-${t}.txt`, size: 100, head: NOTICES })),
   ];
 }
 
@@ -39,7 +42,7 @@ test("a complete set passes, with debug-signed or release-signed APKs", () => {
 });
 
 test("a missing platform fails and is named", () => {
-  const problems = checkAssets(complete().filter((f) => !f.name.includes("win32")));
+  const problems = checkAssets(complete().filter((f) => f.name !== "daily-dispatch-win32-x64.zip"));
   assert.equal(problems.length, 1);
   assert.match(problems[0], /^Windows desktop: expected 1 file .* found 0$/);
 });
@@ -66,6 +69,16 @@ test("a tar archive named .zip fails the magic-byte check", () => {
   assert.match(checkAssets(files)[0], /^daily-dispatch-win32-x64\.zip: not a zip file/);
 });
 
+test("every artifact needs its third-party notices file next to it", () => {
+  const problems = checkAssets(complete().filter((f) => f.name !== "THIRD_PARTY_NOTICES-ios.txt"));
+  assert.deepEqual(problems, ["iOS notices: expected 1 file matching /^THIRD_PARTY_NOTICES-ios\\.txt$/, found 0"]);
+});
+
+test("a notices file that does not start with the generator's header fails", () => {
+  const files = complete().map((f) => (f.name === "THIRD_PARTY_NOTICES-web.txt" ? { ...f, head: ZIP } : f));
+  assert.match(checkAssets(files)[0], /^THIRD_PARTY_NOTICES-web\.txt: not a notices file/);
+});
+
 test("sha256Sums matches the sha256sum format", () => {
   const dir = tempDir([{ name: "b.apk", size: 3, head: ZIP }, { name: "a.zip", size: 5, head: ZIP }]);
   const lines = sha256Sums(dir, ["b.apk", "a.zip"]).trimEnd().split("\n");
@@ -80,10 +93,10 @@ test("the CLI writes SHA256SUMS.txt for a complete set and exits 0", () => {
   const r = spawnSync(process.execPath, [script, dir], { encoding: "utf8" });
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /RELEASE_ASSETS_PASS/);
-  assert.equal(readFileSync(join(dir, SUMS_FILE), "utf8").trimEnd().split("\n").length, 7);
+  assert.equal(readFileSync(join(dir, SUMS_FILE), "utf8").trimEnd().split("\n").length, 13);
   // A second run ignores the sums file it wrote.
   assert.equal(spawnSync(process.execPath, [script, dir]).status, 0);
-  assert.equal(readAssets(dir).length, 8);
+  assert.equal(readAssets(dir).length, 14);
 });
 
 test("the CLI exits 1 and writes nothing for an incomplete set", () => {

@@ -22,7 +22,10 @@ deploys anything.
 | Desktop, macOS | `macos-15` (Apple silicon) | `daily-dispatch-darwin-arm64.tar.gz` |
 | Desktop, Windows | `windows-2025` | `daily-dispatch-win32-x64.zip` |
 
-A separate job runs the unit tests for the scripts in `scripts/ci`.
+Each job also uploads `THIRD_PARTY_NOTICES-<target>.txt` for what it built
+(`android`, `ios`, `web`, `linux-x64`, `darwin-arm64`, `win32-x64`); see
+[Third-party notices](#third-party-notices). A separate job runs the unit
+tests for the scripts in `scripts/ci`.
 
 CI builds have no API URL or key baked in (`EXPO_PUBLIC_API_URL` and
 `EXPO_PUBLIC_API_KEY` are empty), so a downloaded build shows "API not
@@ -130,9 +133,73 @@ To check a folder of release files the way the release job does:
 node scripts/ci/release-assets.mts path/to/folder
 ```
 
-It fails unless each of the seven files above is there exactly once, is not
-empty and starts with the right zip or gzip header, and it writes
-`SHA256SUMS.txt` into the folder.
+It fails unless each of the seven builds above and its six notices files
+are there exactly once, are not empty and start with the right zip, gzip or
+notices header, and it writes `SHA256SUMS.txt` into the folder.
+
+## Third-party notices
+
+Every build carries other people's code, so every file attached to a release
+has a `THIRD_PARTY_NOTICES-<target>.txt` next to it (the two APKs share
+`THIRD_PARTY_NOTICES-android.txt`). `scripts/ci/generate-notices.mts` writes
+it, early in each build job so that a license problem fails in a minute
+rather than after the build. For each package it prints the name, version,
+license id and full license text. The output is the same on every run for
+the same installed packages.
+
+What each file covers:
+
+- **npm**, all targets: the production dependencies in `app/package-lock.json`
+  (Android, iOS, web) or `app/desktop/package-lock.json` (desktop). Dev
+  dependencies are left out. This list also names build tools such as Metro
+  and Babel that do not ship in the app, which errs on the safe side.
+  Packages built for one OS and CPU (npm's `os` and `cpu` fields) count only
+  for the desktop target they match, which is how the Impeller engine package
+  gets in and build-machine binaries such as lightningcss stay out.
+- **Maven**, Android: the modules on the app's release runtime classpath
+  (AndroidX, Fresco, OkHttp and so on). The generator runs a Gradle task from
+  `scripts/ci/notices/android-poms.init.gradle` in `app/android`, which lists
+  every module with its POM. The license comes from the POM, or from a parent
+  POM when the module's own POM names none.
+- **CocoaPods**, iOS: the pods in `app/ios/Podfile.lock`, with the license
+  text CocoaPods collected in `Pods-<target>-acknowledgements.plist`. Both
+  files only exist after `pod install`, which needs macOS, so the iOS CI job
+  generates this file; it cannot be made on Linux.
+- Maven modules and pods that are built from an npm package's folder (the
+  Expo modules, the React Native pods) are listed as part of that package
+  instead of separately.
+
+A package passes when it declares a license and comes with its text. When a
+package declares an SPDX id but ships no license file, and for Maven modules,
+whose POMs only name a license, the file points to a standard text for that
+id from `scripts/ci/notices/licenses/`. The run fails on a package with no
+license id, or with an id that has no text and no standard text, unless
+`scripts/ci/notices/allowlist.json` lists it with a reason.
+[scripts/ci/notices/README.md](../scripts/ci/notices/README.md) describes
+the allowlist.
+
+Known gaps:
+
+- The Impeller engine packages and `react-native-impeller-platform` ship no
+  license files. The desktop notices use that project's LICENSE and a note on
+  the components inside the engine (Impeller, Hermes, GLFW, ANGLE, Boost and
+  React Native's C++ core) taken from its repository. Some components the
+  engine compiles in (folly, glog, fmt, double-conversion, fast_float,
+  OpenSSL on Windows, react-native-svg, stb) have no license text there yet.
+- The iOS half has only run against test fixtures so far. Its first real run
+  is the iOS CI job; a pod whose podspec finds no license file will need an
+  allowlist entry.
+
+To make a notices file locally, install the app's packages first:
+
+```bash
+# Android (after npx expo prebuild --platform android in app/), or web
+cd app && node ../scripts/ci/generate-notices.mts --target android --out dist-android
+node ../scripts/ci/generate-notices.mts --target web --out dist-web
+
+# Desktop, for the machine you are on
+cd app/desktop && node ../../scripts/ci/generate-notices.mts --target linux-x64 --out dist
+```
 
 ## Cost
 

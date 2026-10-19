@@ -1,0 +1,54 @@
+{
+  "//": "Packages that pass the notices check by a person's decision rather than by their own metadata. Read by scripts/ci/generate-notices.mts; the format is described in scripts/ci/notices/README.md. Every entry needs a reason and is pinned to a version, so a version bump fails the run until someone checks the new version.",
+  "packages": [
+    {
+      "source": "npm",
+      "name": "react-native-impeller-platform",
+      "version": "0.1.0",
+      "targets": ["linux-x64", "darwin-arm64", "win32-x64"],
+      "reason": "The npm package declares MIT but ships no LICENSE file. The text is the LICENSE file of its repository at tag v0.1.0.",
+      "textFiles": ["impeller-LICENSE.txt"]
+    },
+    {
+      "source": "npm",
+      "name": "@blbaker/react-native-impeller-platform-engine-linux-x64",
+      "version": "0.1.0",
+      "targets": ["linux-x64"],
+      "reason": "The engine package declares MIT but ships no license files, although its binary links third-party engines. The text is the project's LICENSE plus a note on those components, both from its repository at tag v0.1.0.",
+      "textFiles": ["impeller-LICENSE.txt", "impeller-engine.txt"]
+    },
+    {
+      "source": "npm",
+      "name": "@blbaker/react-native-impeller-platform-engine-darwin-arm64",
+      "version": "0.1.0",
+      "targets": ["darwin-arm64"],
+      "reason": "The engine package declares MIT but ships no license files, although its binary links third-party engines. The text is the project's LICENSE plus a note on those components, both from its repository at tag v0.1.0.",
+      "textFiles": ["impeller-LICENSE.txt", "impeller-engine.txt"]
+    },
+    {
+      "source": "npm",
+      "name": "@blbaker/react-native-impeller-platform-engine-win32-x64",
+      "version": "0.1.0",
+      "targets": ["win32-x64"],
+      "reason": "The engine package declares MIT but ships no license files, although its binary links third-party engines. The text is the project's LICENSE plus a note on those components, both from its repository at tag v0.1.0.",
+      "textFiles": ["impeller-LICENSE.txt", "impeller-engine.txt"]
+    },
+    {
+      "source": "maven",
+      "name": "com.android.installreferrer:installreferrer",
+      "version": "2.2",
+      "targets": ["android"],
+      "license": "Android Software Development Kit License",
+      "reason": "Google Play Install Referrer library, a dependency of expo-application. Its POM names the Android Software Development Kit License (https://developer.android.com/studio/terms.html), which is a set of terms rather than an open source license text, so it is not reproduced here."
+    },
+    {
+      "source": "maven",
+      "name": "com.parse.bolts:bolts-tasks",
+      "version": "1.4.0",
+      "targets": ["android"],
+      "license": "BSD-3-Clause",
+      "reason": "A Fresco dependency. Its POM names the license only as \"BSD License\"; the text is the LICENSE and PATENTS files of Bolts-Android at tag 1.4.0.",
+      "textFiles": ["bolts-android-1.4.0.txt"]
+    }
+  ]
+}

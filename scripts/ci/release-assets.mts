@@ -4,15 +4,17 @@
 //   node scripts/ci/release-assets.mts DIR
 //
 // Every expected asset must be there exactly once, be non-empty and start
-// with the right magic bytes, and nothing else may be in DIR. A release that
+// with the right magic bytes, and nothing else may be in DIR. Each build
+// also carries its THIRD_PARTY_NOTICES-<target>.txt from generate-notices.mts. A release that
 // is missing a platform fails here instead of shipping short.
 // Prints RELEASE_ASSETS_PASS or RELEASE_ASSETS_FAIL and exits 0 or 1.
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { noticesFileName, TARGETS } from "./generate-notices.mts";
 
-type Kind = "zip" | "gzip";
+type Kind = "zip" | "gzip" | "notices";
 type Expected = { label: string; pattern: RegExp; kind: Kind };
 
 export const SUMS_FILE = "SHA256SUMS.txt";
@@ -25,11 +27,17 @@ export const EXPECTED: Expected[] = [
   { label: "Linux desktop", pattern: /^daily-dispatch-linux-x64\.tar\.gz$/, kind: "gzip" },
   { label: "macOS desktop", pattern: /^daily-dispatch-darwin-arm64\.tar\.gz$/, kind: "gzip" },
   { label: "Windows desktop", pattern: /^daily-dispatch-win32-x64\.zip$/, kind: "zip" },
+  ...Object.entries(TARGETS).map(([id, t]): Expected => ({
+    label: `${t.label} notices`,
+    pattern: new RegExp(`^${noticesFileName(id).replaceAll(".", "\\.")}$`),
+    kind: "notices",
+  })),
 ];
 
 const MAGIC: Record<Kind, Buffer> = {
   zip: Buffer.from([0x50, 0x4b, 0x03, 0x04]),
   gzip: Buffer.from([0x1f, 0x8b]),
+  notices: Buffer.from("Third-party notices"),
 };
 
 export type AssetFile = { name: string; size: number; head: Buffer };
@@ -62,7 +70,7 @@ export function readAssets(dir: string): AssetFile[] {
     .filter((e) => e.isFile())
     .map((e) => {
       const path = join(dir, e.name);
-      return { name: e.name, size: statSync(path).size, head: readFileSync(path).subarray(0, 8) };
+      return { name: e.name, size: statSync(path).size, head: readFileSync(path).subarray(0, 32) };
     });
 }
 
