@@ -12,6 +12,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, Linking, Platform } from "react-native";
+import { adapterFactories } from "./adapters";
 import { createPushApi } from "./api";
 import { createNotifications, type Notifications } from "./controller";
 import { DEFAULT_PREFS, createPrefsStore } from "./prefs";
@@ -30,18 +31,13 @@ const storage = AsyncStorage;
 const prefs = createPrefsStore({ api, storage });
 let instance: Notifications | null = null;
 
-// The adapters are required lazily so a platform never evaluates another
-// platform's native modules.
+// The adapter map lives in adapters.ts (adapters.impeller.ts on desktop).
 function notifications(): Notifications {
   instance ??= createNotifications({
     os: Platform.OS,
     api,
     storage,
-    adapters: {
-      expo: () => (require("./nativeAdapter") as typeof import("./nativeAdapter")).createNativeAdapter(),
-      webpush: () => (require("./webAdapter") as typeof import("./webAdapter")).createWebAdapter({ api }),
-      poll: () => (require("./desktopAdapter") as typeof import("./desktopAdapter")).createDesktopAdapter(storage),
-    },
+    adapters: adapterFactories(api, storage),
   });
   return instance;
 }
