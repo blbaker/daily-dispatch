@@ -1,0 +1,5 @@
+# Only the npm packages live in this workspace. app/ (npm) and backend/
+# (pnpm) keep their own lockfiles and install on their own; run pnpm there
+# with --ignore-workspace so it does not try to resolve this workspace.
+packages:
+  - packages/*

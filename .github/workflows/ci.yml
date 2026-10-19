@@ -54,7 +54,9 @@ jobs:
           node-version: 24
           cache: pnpm
           cache-dependency-path: backend/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
+      # The root pnpm-workspace.yaml covers packages/* only. Without
+      # --ignore-workspace, pnpm installs that workspace instead of backend/.
+      - run: pnpm install --frozen-lockfile --ignore-workspace
       - run: pnpm exec tsc --noEmit
       # Unit tests mock DynamoDB, SSM, Expo and Web Push; no network, no AWS.
       - run: pnpm exec vitest run
