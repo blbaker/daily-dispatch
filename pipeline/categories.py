@@ -19,7 +19,7 @@ CAT_LABEL = {
 # keyword -> category, checked in order (first match wins)
 CAT_RULES = [
     ("tech", r"\b(claude code|chrome extension|extension|api|sdk|github|open ?source|agent|codex|kubernetes|typescript|python|rust|npm|compiler|webassembly|wasm|manifest v3|framework|library|repo|cli)\b"),
-    ("sports", r"\b(nba|nfl|cyclones|hawkeyes|cavs|game|season|coach|playoff|quarterback|raiders)\b"),
+    ("sports", r"\b(nba|nfl|mlb|nhl|game|season|coach|playoff|quarterback)\b"),
     ("science", r"\b(climate|research|study|space|nasa|physic|scien|model|quantum|gpu|qwen|opus)\b"),
     ("entertainment", r"\b(plex|tv|movie|show|film|music|stream|episode|television|netflix)\b"),
     ("business", r"\b(anthropic|openai|acqui|funding|revenue|market share|enterprise|ipo|startup|token load)\b"),

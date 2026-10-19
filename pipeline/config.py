@@ -47,7 +47,7 @@ def digest_api_conf() -> tuple[str, str]:
 
 
 # Podcast framing: the two hosts talk about links sent in by one listener.
-# Defaults are neutral so a fresh checkout doesn't talk about Baker.
+# Defaults are neutral so a fresh checkout doesn't name a real person.
 LISTENER_NAME = os.environ.get("LISTENER_NAME", "a listener")
 LISTENER_TOWN = os.environ.get("LISTENER_TOWN", "out there somewhere")
 
@@ -58,7 +58,7 @@ FIRECRAWL_URL = os.environ.get("FIRECRAWL_URL", "")
 # Command used to write article summaries. Must accept the prompt as its
 # final argument and print the response to stdout. Defaults to the Claude
 # Code CLI; set SUMMARIZE_CMD to point at any other CLI that behaves the
-# same way (including a local hermes install, if you have one).
+# same way.
 SUMMARIZE_CMD = os.environ.get("SUMMARIZE_CMD", "claude -p")
 
 # Local Ollama fallback if SUMMARIZE_CMD fails or isn't installed.
