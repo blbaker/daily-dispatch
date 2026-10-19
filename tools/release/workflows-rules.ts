@@ -224,9 +224,11 @@ function checkGatesWorkflow(name: string, trig: Obj, jobs: Obj, fail: (rule: str
   for (const script of ['release:test', 'release:check', 'release:rehearse']) {
     if (!runs(new RegExp(`\\b${script}\\b`))) fail('W16', `${name} never runs ${script}`);
   }
-  const check = runs(/\brelease:check\b/);
-  const env = isRecord(check?.env) ? check.env : {};
-  if (check && String(env.DD_REQUIRE_ACTIONLINT ?? '') !== '1') {
-    fail('W16', `${name} runs release:check without DD_REQUIRE_ACTIONLINT=1, so CI could skip actionlint silently`);
+  for (const script of ['release:test', 'release:check']) {
+    const step = runs(new RegExp(`\\b${script}\\b`));
+    const env = isRecord(step?.env) ? step.env : {};
+    if (step && String(env.DD_REQUIRE_ACTIONLINT ?? '') !== '1') {
+      fail('W16', `${name} runs ${script} without DD_REQUIRE_ACTIONLINT=1, so CI could skip actionlint silently`);
+    }
   }
 }

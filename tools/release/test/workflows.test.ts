@@ -75,7 +75,8 @@ const CASES: [rule: string, title: string, mutate: Mutation][] = [
   ['W16', 'package.yml stops running on pull requests', sub('package.yml', 'on:\n  pull_request:\n', 'on:\n')],
   ['W16', 'package.yml can no longer be called', sub('package.yml', '  workflow_call:\n', '')],
   ['W16', 'package.yml stops running the rehearsal', sub('package.yml', '      - run: pnpm run release:rehearse\n', '')],
-  ['W16', 'package.yml stops requiring actionlint', sub('package.yml', "        env:\n          DD_REQUIRE_ACTIONLINT: '1'\n", '')],
+  ['W16', 'release:check stops requiring actionlint', sub('package.yml', "        env:\n          DD_REQUIRE_ACTIONLINT: '1'\n        run: pnpm run release:check", '        run: pnpm run release:check')],
+  ['W16', 'release:test stops requiring actionlint', sub('package.yml', "        env:\n          DD_REQUIRE_ACTIONLINT: '1'\n        run: pnpm run release:test", '        run: pnpm run release:test')],
 ];
 
 for (const [rule, title, mutate] of CASES) {

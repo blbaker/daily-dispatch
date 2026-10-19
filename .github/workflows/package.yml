@@ -37,7 +37,6 @@ jobs:
       - run: pnpm -r typecheck
       - run: pnpm -r test
       - run: pnpm run release:typecheck
-      - run: pnpm run release:test
       # The policy rules cannot see a typo in an expression; actionlint can.
       # Pinned and checksum-verified, then required below, so a failed
       # install turns the job red instead of quietly skipping the check.
@@ -49,6 +48,10 @@ jobs:
             | sha256sum -c -
           tar -xzf "$RUNNER_TEMP/actionlint.tgz" -C "$RUNNER_TEMP" actionlint
           echo "DD_ACTIONLINT=$RUNNER_TEMP/actionlint" >> "$GITHUB_ENV"
+      - name: Release gate tests (one seeded violation per rule)
+        env:
+          DD_REQUIRE_ACTIONLINT: '1'
+        run: pnpm run release:test
       - name: Release checks (metadata, tarball, workflow policy, actionlint)
         env:
           DD_REQUIRE_ACTIONLINT: '1'
