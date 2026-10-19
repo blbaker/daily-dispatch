@@ -11,9 +11,23 @@ const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 type Obj = Record<string, unknown>;
 export const isObj = (v: unknown): v is Obj => v !== null && typeof v === "object" && !Array.isArray(v);
 
+const ZONE_NAME = /^[A-Za-z][A-Za-z0-9_+\-/]{0,63}$/;
+
 function validTimeZone(tz: string): boolean {
+  // A JS engine built without time zone data cannot check the name, so it
+  // falls back to the shape of one; the backend still checks it for real.
+  if (typeof Intl === "undefined" || !intlHasZones()) return ZONE_NAME.test(tz);
   try {
     new Intl.DateTimeFormat("en-US", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function intlHasZones(): boolean {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago" });
     return true;
   } catch {
     return false;
@@ -52,7 +66,8 @@ function checker<T extends object>(section: string, checks: Record<string, (v: u
   /** Throws a TypeError naming the first bad field of a patch. */
   const check = (patch: Partial<T>): Partial<T> => {
     for (const [k, v] of Object.entries(patch)) {
-      const ok = Object.hasOwn(checks, k) ? checks[k] : undefined;
+      // Not Object.hasOwn: older Hermes builds lack it.
+      const ok = Object.prototype.hasOwnProperty.call(checks, k) ? checks[k] : undefined;
       if (!ok) throw new TypeError(`${section}.${k} is not a setting`);
       if (!ok(v)) throw new TypeError(`${section}.${k} has a bad value`);
     }

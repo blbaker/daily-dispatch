@@ -6,9 +6,8 @@ import { Platform } from "react-native";
 import * as Application from "expo-application";
 import * as FileSystem from "expo-file-system/legacy";
 import * as IntentLauncher from "expo-intent-launcher";
+import { currentServer } from "./settings";
 
-const BASE = (process.env.EXPO_PUBLIC_API_URL || "").replace(/\/$/, "");
-const KEY = process.env.EXPO_PUBLIC_API_KEY || "";
 const VARIANT = String(process.env.EXPO_PUBLIC_EINK) === "true" ? "eink" : "phone";
 const FLAG_GRANT_READ_URI_PERMISSION = 1;
 
@@ -20,6 +19,11 @@ export type Release = {
   size: number; // bytes
 };
 
+/** In-app updates exist only for the sideloaded Android builds. */
+export function updatesSupported(): boolean {
+  return Platform.OS === "android";
+}
+
 export function currentVersionCode(): number {
   return Number(Application.nativeBuildVersion || 0);
 }
@@ -28,10 +32,12 @@ const apkPath = (vc: number) => `${FileSystem.cacheDirectory}daily-dispatch-${vc
 
 /** Latest release if it is newer than this build, else null. Never throws. */
 export async function checkForUpdate(): Promise<Release | null> {
-  if (Platform.OS !== "android" || !BASE || !KEY) return null;
+  if (!updatesSupported()) return null;
+  const { baseUrl, apiKey } = await currentServer();
+  if (!baseUrl || !apiKey) return null;
   try {
-    const res = await fetch(`${BASE}/app/latest?variant=${VARIANT}`, {
-      headers: { "x-api-key": KEY },
+    const res = await fetch(`${baseUrl}/app/latest?variant=${VARIANT}`, {
+      headers: { "x-api-key": apiKey },
       cache: "no-store",
     });
     if (!res.ok) return null;

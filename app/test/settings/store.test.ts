@@ -8,6 +8,7 @@ import type { PodcastSettings, RemoteSettings, SettingsApi } from "../../src/set
 import { memoryStore } from "../notifications/helpers";
 
 const T0 = Date.parse("2026-10-19T15:00:00Z");
+const copy = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 
 /** An in-memory backend with a switch for being offline. */
 function fakeBackend(podcast: Partial<PodcastSettings> = {}, updatedAt: string | null = null) {
@@ -22,13 +23,13 @@ function fakeBackend(podcast: Partial<PodcastSettings> = {}, updatedAt: string |
     async get() {
       b.gets++;
       if (!b.online) throw new Error("HTTP 503");
-      return structuredClone(b.remote);
+      return copy(b.remote);
     },
     async putPodcast(p) {
       if (!b.online) throw new Error("HTTP 503");
-      b.puts.push(structuredClone(p));
-      b.remote = { podcast: structuredClone(p), updatedAt: new Date(b.clock).toISOString() };
-      return structuredClone(b.remote);
+      b.puts.push(copy(p));
+      b.remote = { podcast: copy(p), updatedAt: new Date(b.clock).toISOString() };
+      return copy(b.remote);
     },
   };
   return { b, api };
@@ -45,6 +46,29 @@ function setup(seed: Record<string, string> = {}, remote = fakeBackend()) {
 const saved = (storage: { data: Map<string, string> }) => JSON.parse(storage.data.get(SETTINGS_KEY)!);
 
 describe("settings store: load", () => {
+  it("runs where structuredClone and Object.hasOwn do not exist (Hermes)", async () => {
+    const sc = globalThis.structuredClone;
+    const own = Object.hasOwn;
+    // @ts-expect-error removing globals the store must not depend on
+    delete globalThis.structuredClone;
+    // @ts-expect-error same
+    delete Object.hasOwn;
+    let textScale: number;
+    let hostVoices: unknown;
+    try {
+      const { store, b } = setup();
+      await store.setReading({ textScale: 1.125 });
+      const s = await store.setPodcast({ enabled: true, hostVoices: { A: "nova" } });
+      textScale = s.reading.textScale;
+      hostVoices = b.remote.podcast.hostVoices;
+    } finally {
+      globalThis.structuredClone = sc;
+      Object.hasOwn = own;
+    }
+    // Asserted after the globals are back, because expect() itself uses them.
+    expect(textScale).toBe(1.125);
+    expect(hostVoices).toEqual({ A: "nova" });
+  });
   it("starts from the backend defaults and plain reading settings", async () => {
     const { store } = setup();
     const s = await store.state();

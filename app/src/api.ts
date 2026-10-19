@@ -1,8 +1,10 @@
 // API client for the Daily Dispatch backend (Lambda Function URL + API key).
-// The base URL and key are injected at build time via EXPO_PUBLIC_* env vars,
-// which are inlined into the JS bundle. The key is a personal single-user key
-// the owner already holds; EXPO_PUBLIC_ is acceptable for that (see note).
+// The build's EXPO_PUBLIC_API_URL / EXPO_PUBLIC_API_KEY are the defaults; the
+// Server section of Settings can override both on a device, so every request
+// reads the current server. The key is a personal single-user key the owner
+// already holds; EXPO_PUBLIC_ is acceptable for that.
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { currentServer, serverNow } from "./settings";
 import type { Cat } from "./theme";
 
 export type Story = {
@@ -42,15 +44,13 @@ export type Edition = {
   stories: Story[];
 };
 
-const BASE = (process.env.EXPO_PUBLIC_API_URL || "").replace(/\/$/, "");
-const KEY = process.env.EXPO_PUBLIC_API_KEY || "";
-
 const CACHE_EDITIONS = "dd.editions";
 const cacheEdition = (id: string) => `dd.edition.${id}`;
 
 async function req(path: string): Promise<any> {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { "x-api-key": KEY },
+  const { baseUrl, apiKey } = await currentServer();
+  const res = await fetch(`${baseUrl}${path}`, {
+    headers: { "x-api-key": apiKey },
     cache: "no-store", // Today must never come from an HTTP cache
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -84,4 +84,7 @@ export async function getEdition(id: string): Promise<Edition> {
   }
 }
 
-export const apiConfigured = () => Boolean(BASE && KEY);
+export const apiConfigured = () => {
+  const { baseUrl, apiKey } = serverNow();
+  return Boolean(baseUrl && apiKey);
+};

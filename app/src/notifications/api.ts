@@ -45,19 +45,22 @@ export interface PushApi {
 }
 
 export interface PushApiOptions {
-  baseUrl: string;
-  apiKey: string;
+  /** A function is read on every request, so a server changed in Settings applies at once. */
+  baseUrl: string | (() => string);
+  apiKey: string | (() => string);
   fetch?: typeof fetch;
 }
 
 export function createPushApi({ baseUrl, apiKey, fetch: fetchFn }: PushApiOptions): PushApi {
-  const base = baseUrl.replace(/\/$/, "");
+  const read = (v: string | (() => string)) => (typeof v === "function" ? v() : v);
+  const base = () => read(baseUrl).replace(/\/$/, "");
+  const key = () => read(apiKey);
   const doFetch = fetchFn ?? ((...args: Parameters<typeof fetch>) => fetch(...args));
 
   async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
-    const res = await doFetch(`${base}${path}`, {
+    const res = await doFetch(`${base()}${path}`, {
       method,
-      headers: { "x-api-key": apiKey, "content-type": "application/json" },
+      headers: { "x-api-key": key(), "content-type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
       cache: "no-store",
     });
@@ -75,7 +78,9 @@ export function createPushApi({ baseUrl, apiKey, fetch: fetchFn }: PushApiOption
   }
 
   return {
-    configured: Boolean(base && apiKey),
+    get configured() {
+      return Boolean(base() && key());
+    },
     async registerDevice(reg) {
       const out = await call<{ device: { id: string } }>("POST", "/devices", reg);
       return out.device.id;

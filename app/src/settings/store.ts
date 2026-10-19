@@ -65,7 +65,8 @@ function parse(raw: string | null): SettingsState {
   };
 }
 
-const clone = (s: SettingsState): SettingsState => structuredClone(s);
+// Settings are plain JSON. Hermes has no structuredClone, so copy through JSON.
+const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export interface SettingsStore {
@@ -154,7 +155,7 @@ export function createSettingsStore(opts: {
       version++;
       await save({
         ...s,
-        podcast: { ...s.podcast, ...structuredClone(patch) },
+        podcast: { ...s.podcast, ...clone(patch) },
         sync: { ...s.sync, dirty: true, updatedAt: now() },
       });
       await sync();

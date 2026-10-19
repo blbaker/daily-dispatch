@@ -36,6 +36,19 @@ describe("createPushApi", () => {
     expect(url.searchParams.get("device")).toBe("dev1");
   });
 
+  it("reads the base URL and key at call time when given functions", async () => {
+    const m = mockFetch({ "PUT /settings": () => [200, {}] });
+    const server = { baseUrl: "", apiKey: "" };
+    const api = createPushApi({ baseUrl: () => server.baseUrl, apiKey: () => server.apiKey, fetch: m.fetch });
+    expect(api.configured).toBe(false);
+    server.baseUrl = BASE;
+    server.apiKey = KEY;
+    expect(api.configured).toBe(true);
+    await api.putSettings({ enabled: false });
+    expect(m.calls[0].url).toBe(`${BASE}/settings`);
+    expect(m.calls[0].headers["x-api-key"]).toBe(KEY);
+  });
+
   it("reports itself unconfigured without a base URL or key", () => {
     expect(createPushApi({ baseUrl: "", apiKey: KEY }).configured).toBe(false);
     expect(createPushApi({ baseUrl: BASE, apiKey: "" }).configured).toBe(false);

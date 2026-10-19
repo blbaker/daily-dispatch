@@ -16,6 +16,10 @@ export type Release = {
   size: number;
 };
 
+export function updatesSupported(): boolean {
+  return false;
+}
+
 export function currentVersionCode(): number {
   return 0;
 }
