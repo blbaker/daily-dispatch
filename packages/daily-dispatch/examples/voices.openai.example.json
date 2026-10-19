@@ -1,0 +1,6 @@
+{
+  "S1": { "id": "ash", "name": "Host 1", "instructions": "A quick, dry radio host who answers the questions." },
+  "S2": { "id": "ballad", "name": "Host 2", "instructions": "A warm co-host who wanders off on tangents and laughs easily." },
+  "CALLER_A": { "id": "coral", "name": "Caller A", "instructions": "A friendly caller on a phone line." },
+  "CALLER_B": { "id": "verse", "name": "Caller B", "instructions": "A curious caller on a phone line." }
+}
