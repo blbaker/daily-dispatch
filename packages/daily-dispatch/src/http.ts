@@ -18,6 +18,8 @@ export interface JsonRequest {
   headers?: Record<string, string>;
   /** Serialised as JSON. Omit for GET. */
   body?: unknown;
+  /** Sent exactly as given (SSML, or JSON that was signed); the caller sets content-type. */
+  raw?: string;
 }
 
 /**
@@ -35,9 +37,10 @@ const BASE_DELAY_MS = 5000;
  */
 export async function sendJson(url: string, req: JsonRequest, opts: HttpOptions): Promise<Response> {
   const retries = opts.retries ?? 3;
-  const method = req.method ?? (req.body === undefined ? 'GET' : 'POST');
+  const payload = req.raw ?? (req.body === undefined ? undefined : JSON.stringify(req.body));
+  const method = req.method ?? (payload === undefined ? 'GET' : 'POST');
   const headers: Record<string, string> = { ...req.headers };
-  if (req.body !== undefined) headers['content-type'] = 'application/json';
+  if (req.raw === undefined && req.body !== undefined) headers['content-type'] = 'application/json';
   const host = new URL(url).host;
 
   for (let attempt = 0; ; attempt++) {
@@ -45,7 +48,7 @@ export async function sendJson(url: string, req: JsonRequest, opts: HttpOptions)
     let res: Response;
     try {
       const init: RequestInit = { method, headers };
-      if (req.body !== undefined) init.body = JSON.stringify(req.body);
+      if (payload !== undefined) init.body = payload;
       if (opts.signal !== undefined) init.signal = opts.signal;
       res = await opts.fetchImpl(url, init);
     } catch (e) {

@@ -40,7 +40,7 @@ export interface VoiceEntry {
   model?: string;
   /** ElevenLabs: per-voice voice_settings. Forces per-turn text-to-speech. */
   settings?: Record<string, number | boolean>;
-  /** OpenAI gpt-4o-mini-tts: how this voice should speak. */
+  /** How this voice should speak: OpenAI gpt-4o-mini-tts instructions, Gemini turn style. */
   instructions?: string;
 }
 
