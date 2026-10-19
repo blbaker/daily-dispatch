@@ -30,22 +30,6 @@ const ALIASES = {
 
 const isBare = (name) => !name.startsWith(".") && !path.isAbsolute(name);
 
-// React Native internals replaced on desktop, keyed by resolved-path suffix.
-// The shim itself imports the real file, so a request from the shim passes.
-const INTERNAL_SHIMS = {
-  "react-native/Libraries/StyleSheet/processColor.js": "processColor.ts",
-};
-
-function internalShim(origin, resolution) {
-  if (!resolution || resolution.type !== "sourceFile") return resolution;
-  const resolved = resolution.filePath.split(path.sep).join("/");
-  for (const [suffix, shim] of Object.entries(INTERNAL_SHIMS)) {
-    const shimPath = path.join(shimDir, shim);
-    if (resolved.endsWith(suffix) && origin !== shimPath) return { type: "sourceFile", filePath: shimPath };
-  }
-  return resolution;
-}
-
 function resolveRequest(context, moduleName, platform) {
   const alias = ALIASES[moduleName];
   if (alias) return { type: "sourceFile", filePath: path.join(shimDir, alias) };
@@ -53,9 +37,9 @@ function resolveRequest(context, moduleName, platform) {
   if (isBare(moduleName) && origin && !origin.startsWith(desktopRoot + path.sep)) {
     // Resolve as if the import were written in this project.
     const fromHere = { ...context, originModulePath: anchor };
-    return internalShim(origin, context.resolveRequest(fromHere, moduleName, platform));
+    return context.resolveRequest(fromHere, moduleName, platform);
   }
-  return internalShim(origin, context.resolveRequest(context, moduleName, platform));
+  return context.resolveRequest(context, moduleName, platform);
 }
 
 // EXPO_PUBLIC_* values are inlined at transform time (see babel.config.js).

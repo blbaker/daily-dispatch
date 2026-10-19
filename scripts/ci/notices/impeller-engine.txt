@@ -1,11 +1,11 @@
-React Native Impeller engine, from react-native-impeller-platform 0.1.0
+React Native Impeller engine, from react-native-impeller-platform 0.3.1
 
 The desktop builds run on the engine binary and libraries in the
 @blbaker/react-native-impeller-platform-engine-<os>-<cpu> npm package. Neither
 that package nor react-native-impeller-platform ships a license file. This
 note comes from the project's repository,
-https://github.com/blbaker/react-native-impeller-platform, at tag v0.1.0
-(commit 0536fd2f8dcb58b7566c27e92e0eaab186f7b857). The project's own MIT
+https://github.com/blbaker/react-native-impeller-platform, at tag v0.3.1
+(commit f9d14e0984895c4f8f2f07d17f226e147d970662). The project's own MIT
 license is printed above this note.
 
 Components the repository's THIRD_PARTY_NOTICES.md lists, with the license

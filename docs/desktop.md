@@ -32,10 +32,6 @@ desktop replacement:
   `expo-application`, `expo-file-system` and `expo-intent-launcher`. The
   desktop app is updated by installing a newer release archive, so this file
   reports no update and the update banner stays hidden.
-- `shims/processColor.ts` works around an engine bug. React Native's generic
-  C++ platform stores the colour `transparent` as 0, which is also its
-  "no colour set" value, so a transparent border was drawn in the default
-  black. The shim sends a fully transparent value that is not 0.
 
 The `EXPO_PUBLIC_*` variables (API URL, API key, e-ink flag) are inlined at
 bundle time by a small Babel plugin, the same way `babel-preset-expo` does it

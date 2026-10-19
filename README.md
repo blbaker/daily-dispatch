@@ -178,9 +178,11 @@ parts have only been checked with mocks or on some platforms:
 - Push delivery through FCM, APNs or a browser push service has not been
   tried, because it needs real credentials. The push routes in the backend
   have not been deployed.
-- Desktop notifications fall back to an in-app strip until the engine's
-  notifications module is released. The macOS app has passed its headless
-  render check but has not been opened in a window.
+- Desktop notifications use the engine's Notifications module
+  (react-native-impeller-platform 0.3.1 and later), with an in-app strip
+  when the OS refuses. A notification has not yet been seen on a real
+  Windows or macOS desktop. The macOS app has passed its headless render
+  check but has not been opened in a window.
 - The iOS app has only been built for the simulator, and the Android build
   with push support has not been installed on a device.
 - The CI workflows and this documentation site have not run on GitHub yet.

@@ -4,33 +4,33 @@
     {
       "source": "npm",
       "name": "react-native-impeller-platform",
-      "version": "0.1.0",
+      "version": "0.3.1",
       "targets": ["linux-x64", "darwin-arm64", "win32-x64"],
-      "reason": "The npm package declares MIT but ships no LICENSE file. The text is the LICENSE file of its repository at tag v0.1.0.",
+      "reason": "The npm package declares MIT but ships no LICENSE file. The text is the LICENSE file of its repository at tag v0.3.1.",
       "textFiles": ["impeller-LICENSE.txt"]
     },
     {
       "source": "npm",
       "name": "@blbaker/react-native-impeller-platform-engine-linux-x64",
-      "version": "0.1.0",
+      "version": "0.3.1",
       "targets": ["linux-x64"],
-      "reason": "The engine package declares MIT but ships no license files, although its binary links third-party engines. The text is the project's LICENSE plus a note on those components, both from its repository at tag v0.1.0.",
+      "reason": "The engine package declares MIT but ships no license files, although its binary links third-party engines. The text is the project's LICENSE plus a note on those components, both from its repository at tag v0.3.1.",
       "textFiles": ["impeller-LICENSE.txt", "impeller-engine.txt"]
     },
     {
       "source": "npm",
       "name": "@blbaker/react-native-impeller-platform-engine-darwin-arm64",
-      "version": "0.1.0",
+      "version": "0.3.1",
       "targets": ["darwin-arm64"],
-      "reason": "The engine package declares MIT but ships no license files, although its binary links third-party engines. The text is the project's LICENSE plus a note on those components, both from its repository at tag v0.1.0.",
+      "reason": "The engine package declares MIT but ships no license files, although its binary links third-party engines. The text is the project's LICENSE plus a note on those components, both from its repository at tag v0.3.1.",
       "textFiles": ["impeller-LICENSE.txt", "impeller-engine.txt"]
     },
     {
       "source": "npm",
       "name": "@blbaker/react-native-impeller-platform-engine-win32-x64",
-      "version": "0.1.0",
+      "version": "0.3.1",
       "targets": ["win32-x64"],
-      "reason": "The engine package declares MIT but ships no license files, although its binary links third-party engines. The text is the project's LICENSE plus a note on those components, both from its repository at tag v0.1.0.",
+      "reason": "The engine package declares MIT but ships no license files, although its binary links third-party engines. The text is the project's LICENSE plus a note on those components, both from its repository at tag v0.3.1.",
       "textFiles": ["impeller-LICENSE.txt", "impeller-engine.txt"]
     },
     {

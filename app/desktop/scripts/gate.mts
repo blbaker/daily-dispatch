@@ -93,8 +93,8 @@ async function main(): Promise<number> {
   const cached = existsSync(storage) ? readdirSync(storage).length : 0;
   expect(today, cached >= 2, `offline cache has ${cached} entries, expected >= 2`);
   // The hero's slanted bottom edge is a border triangle with a transparent
-  // side. Just right of the slant the photo must show, not black (see
-  // shims/processColor.ts).
+  // side. Just right of the slant the photo must show, not black: engines
+  // before react-native-impeller-platform 0.3.1 drew it black.
   const px = today.frame ? pixel(today.frame, WEDGE_PROBE[0], WEDGE_PROBE[1]) : [0, 0, 0];
   today.notes.push(`wedge_probe=${px.join(",")}`);
   expect(today, px[0] + px[1] + px[2] > 60, "black triangle under the hero (transparent border drawn black)");
