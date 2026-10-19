@@ -93,6 +93,10 @@ Every PR runs:
   `backend/`, no AWS credentials, no deploy.
 - **Python checks** -- `py_compile` on every pipeline script, plus the unit
   tests in `tests/`.
+- **Package** (`package.yml`) -- build, typecheck and test
+  `packages/daily-dispatch`, then the release checks: package metadata, the
+  tarball's file list, the workflow policy plus actionlint, and a publish
+  rehearsal against a throwaway local registry. See `docs/releasing.md`.
 
 Run the same commands locally before opening a PR; it's faster than
 waiting on the workflow.
@@ -110,8 +114,10 @@ attach before/after screenshots.
 [release-please](https://github.com/googleapis/release-please) opens a
 release PR automatically once there are release-worthy commits on `main`.
 That PR is maintainer-only to merge -- it's how the changelog and version
-number get finalized. Merging it doesn't publish or deploy anything; there
-is no publish step in this repo's CI. APKs are built and uploaded by the
+number get finalized. Merging it tags `vX.Y.Z`, and the tag runs
+`.github/workflows/release.yml`, which stages the `daily-dispatch` npm
+package for a maintainer to approve on npm. `docs/releasing.md` has the
+details. Nothing else deploys: APKs are built and uploaded by the
 maintainer with `scripts/release.sh`, by hand.
 
 ## Code of conduct and security
