@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings mockup</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="settings.css">
+<script src="mock.js" defer></script>
+</head>
+<body>
+<div class="statusbar" aria-hidden="true"><span>4:58</span><span class="sb-right"><i class="sb-sig"></i><i class="sb-bat"></i>82%</span></div>
+
+<!-- Desktop only: section index in the left gutter. -->
+<nav class="jump" aria-label="Settings sections">
+  <a href="#notifications">Notifications</a>
+  <a href="#podcast">Daily podcast</a>
+  <a href="#reading">Reading</a>
+  <a href="#server">Server</a>
+  <a href="#about">About</a>
+</nav>
+
+<main class="shell">
+  <header class="head">
+    <h1>Settings</h1>
+    <p class="head-sub" id="sync"><span class="dot good"></span>Saved · synced with your server at 4:58 PM</p>
+  </header>
+
+  <section class="sec" id="notifications">
+    <div class="sec-head"><span class="dot"></span><h2>Notifications</h2><span class="scope">This device</span></div>
+    <button class="row toggle" data-toggle="push" aria-pressed="true">
+      <span class="row-main">
+        <span class="row-label">Allow notifications</span>
+        <span class="row-sub">This device is registered with your server</span>
+      </span>
+      <span class="ring"></span>
+    </button>
+    <div class="children" data-parent="push">
+      <button class="row toggle child" aria-pressed="true">
+        <span class="row-main">
+          <span class="row-label">New edition</span>
+          <span class="row-sub">When the 5 PM digest is published</span>
+        </span>
+        <span class="ring"></span>
+      </button>
+      <button class="row toggle child" aria-pressed="true">
+        <span class="row-main">
+          <span class="row-label">New episode</span>
+          <span class="row-sub">When the daily podcast is ready to play</span>
+        </span>
+        <span class="ring"></span>
+      </button>
+    </div>
+  </section>
+
+  <section class="sec" id="podcast">
+    <div class="sec-head"><span class="dot"></span><h2>Daily podcast</h2><span class="scope">Synced</span></div>
+    <button class="row toggle" data-toggle="podcast" aria-pressed="true">
+      <span class="row-main">
+        <span class="row-label">Make a daily episode</span>
+        <span class="row-sub">Your scheduler checks every 15 minutes, so a new time applies at the next check</span>
+      </span>
+      <span class="ring"></span>
+    </button>
+    <div class="children" data-parent="podcast">
+      <button class="time-block" data-sheet="time">
+        <span class="field-label">Episode time</span>
+        <span class="time">6:00<span class="ampm">AM</span></span>
+        <span class="row-sub">Every day · next episode tomorrow, Tue Oct 20</span>
+      </button>
+      <button class="row drill" data-sheet="tz">
+        <span class="row-main"><span class="row-label">Time zone</span></span>
+        <span class="value">America/New_York</span>
+      </button>
+      <button class="row drill" data-sheet="writer">
+        <span class="row-main">
+          <span class="row-label">Script writer</span>
+          <span class="row-sub">Turns the day's stories into a two-host script</span>
+        </span>
+        <span class="value" data-value="writer">Command</span>
+      </button>
+      <button class="row drill" data-sheet="voice">
+        <span class="row-main">
+          <span class="row-label">Voice provider</span>
+          <span class="row-sub" data-sub="voice">Paid · uses the key on your server</span>
+        </span>
+        <span class="value" data-value="voice">ElevenLabs</span>
+      </button>
+      <button class="row drill" data-sheet="host1">
+        <span class="row-main"><span class="row-label">Host 1 voice</span></span>
+        <span class="value">Aria</span>
+      </button>
+      <button class="row drill" data-sheet="host2">
+        <span class="row-main"><span class="row-label">Host 2 voice</span></span>
+        <span class="value">Roger</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="sec" id="reading">
+    <div class="sec-head"><span class="dot"></span><h2>Reading</h2><span class="scope">This device</span></div>
+    <div class="size-block">
+      <div class="size-top"><span class="row-label">Text size</span><span class="value plain" id="size-name">Default</span></div>
+      <div class="atoms" role="radiogroup" aria-label="Text size">
+        <button class="atom" role="radio" data-size="0.875" data-name="Small" aria-checked="false"><span style="font-size:13px">A</span></button>
+        <button class="atom" role="radio" data-size="1" data-name="Default" aria-checked="true"><span style="font-size:16px">A</span></button>
+        <button class="atom" role="radio" data-size="1.125" data-name="Large" aria-checked="false"><span style="font-size:19px">A</span></button>
+        <button class="atom" role="radio" data-size="1.25" data-name="Larger" aria-checked="false"><span style="font-size:22px">A</span></button>
+      </div>
+      <div class="preview" id="preview">
+        <div class="cat-row"><span class="dot" style="--dot: #9B4DCA"></span><span class="cat-label" style="--cat: #9B4DCA">Science</span></div>
+        <p class="pv-headline">Webb finds water ice in the disk around a star only a million years old</p>
+        <p class="pv-source">NASA Science</p>
+      </div>
+    </div>
+    <button class="row toggle" data-toggle="eink" aria-pressed="false">
+      <span class="row-main">
+        <span class="row-label">E-ink mode</span>
+        <span class="row-sub">Black and white, no photos, no animation. Always on in the Boox build</span>
+      </span>
+      <span class="ring"></span>
+    </button>
+  </section>
+
+  <section class="sec" id="server">
+    <div class="sec-head"><span class="dot"></span><h2>Server</h2><span class="scope">This device</span></div>
+    <label class="field">
+      <span class="field-label">API URL</span>
+      <input class="input" value="https://dispatch.example.com" spellcheck="false" autocomplete="off">
+    </label>
+    <label class="field">
+      <span class="field-label">API key</span>
+      <span class="field-row">
+        <input class="input" id="key" type="password" value="example-key-0000-0000-7q2k" spellcheck="false" autocomplete="off">
+        <button class="act-sm" data-act="reveal" type="button">Show</button>
+      </span>
+    </label>
+    <div class="test" id="test" data-state="ok">
+      <button class="act" data-act="test">Test connection</button>
+      <div class="track"><div class="fill"></div></div>
+      <p class="status">
+        <span class="dot good"></span><span class="status-label" id="test-label">Connected</span>
+        <span class="status-detail" id="test-detail">/health answered in 142 ms</span>
+      </p>
+    </div>
+  </section>
+
+  <section class="sec" id="about">
+    <div class="sec-head"><span class="dot"></span><h2>About</h2></div>
+    <div class="row">
+      <span class="row-main">
+        <span class="row-label">Version</span>
+        <span class="row-sub" data-build>Phone build 209</span>
+      </span>
+      <span class="value plain">1.0.209</span>
+    </div>
+    <div class="row">
+      <span class="row-main">
+        <span class="row-label">Updates</span>
+        <span class="row-sub" id="upd">You're on the latest version · checked 4:12 PM</span>
+      </span>
+      <button class="act" data-act="update">Check now</button>
+    </div>
+    <a class="row drill ext" href="#about">
+      <span class="row-main">
+        <span class="row-label">Source code</span>
+        <span class="row-sub">github.com/blbaker/daily-dispatch</span>
+      </span>
+    </a>
+    <button class="row drill" data-sheet="licenses">
+      <span class="row-main">
+        <span class="row-label">Open-source licenses</span>
+        <span class="row-sub">MIT for the app, plus a notice for every dependency</span>
+      </span>
+    </button>
+  </section>
+</main>
+
+<nav class="tabbar" aria-label="Main">
+  <a class="tab" data-href="today.html">Today</a>
+  <a class="tab">Archive</a>
+  <a class="tab on" aria-current="page">Settings</a>
+</nav>
+
+<div class="scrim" id="scrim" hidden></div>
+<div class="sheet" id="sheet" role="dialog" aria-labelledby="sheet-title" hidden>
+  <div class="sheet-head">
+    <h3 id="sheet-title">Voice provider</h3>
+    <button class="act-sm" data-act="close">Done</button>
+  </div>
+  <div id="sheet-list"></div>
+</div>
+</body>
+</html>
