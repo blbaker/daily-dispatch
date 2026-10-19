@@ -91,6 +91,17 @@ describe("expo provider", () => {
     expect(r.checked).toHaveLength(1000);
     expect(r.checked).not.toContain("r5");
   });
+
+  it("logs receipt errors other than DeviceNotRegistered, such as bad FCM or APNs credentials", async () => {
+    const fetch = vi.fn(async () =>
+      new Response(JSON.stringify({ data: { r1: { status: "error", message: "bad key", details: { error: "InvalidCredentials" } } } })),
+    );
+    const log = vi.fn();
+    const p = createExpoProvider({ accessToken: "x", fetch: fetch as never, log });
+    const r = await p.checkReceipts(["r1"]);
+    expect(r).toEqual({ checked: ["r1"], unregistered: [] });
+    expect(log).toHaveBeenCalledWith("push: expo receipt error", { ticket: "r1", error: "InvalidCredentials", message: "bad key" });
+  });
 });
 
 describe("webpush provider", () => {

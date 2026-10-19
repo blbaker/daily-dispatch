@@ -110,7 +110,9 @@ export function createExpoProvider(o: ExpoOpts): ExpoProvider {
           const receipt = data[id];
           if (!receipt) continue; // not ready yet
           out.checked.push(id);
-          if (receipt.status === "error" && receipt.details?.error === "DeviceNotRegistered") out.unregistered.push(id);
+          if (receipt.status !== "error") continue;
+          if (receipt.details?.error === "DeviceNotRegistered") out.unregistered.push(id);
+          else o.log("push: expo receipt error", { ticket: id, error: receipt.details?.error, message: receipt.message });
         }
       }
       return out;
