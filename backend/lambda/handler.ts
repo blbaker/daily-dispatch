@@ -8,8 +8,9 @@ import { HttpError, HttpEvent, HttpResult, extractKey, json, keyMatches, methodA
 import { Route, matchRoute } from "./router";
 import { appReleaseRoutes } from "./routes/app-release";
 import { editionRoutes } from "./routes/editions";
+import { settingsRoutes } from "./routes/settings";
 
-export const ROUTES: Route[] = [...editionRoutes, ...appReleaseRoutes];
+export const ROUTES: Route[] = [...editionRoutes, ...appReleaseRoutes, ...settingsRoutes];
 
 const PLACEHOLDER_KEY = "PLACEHOLDER_SET_AT_DEPLOY";
 
