@@ -25,6 +25,9 @@
     },
     "extra": {
       "eink": false
+    },
+    "ios": {
+      "bundleIdentifier": "com.baker.dailydispatch"
     }
   }
 }
