@@ -122,7 +122,8 @@ export class DigestStack extends cdk.Stack {
 
     table.grantReadWriteData(fn);
     releases.grantRead(fn); // presigned GETs are signed with the function's role
-    media.grantReadWrite(fn, "episodes/*"); // presigned PUT, GET and HEAD
+    media.grantPut(fn, "episodes/*"); // presigned PUT (upload)
+    media.grantRead(fn, "episodes/*"); // presigned GET and HEAD (play, upload check)
     fn.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["ssm:GetParameters"],

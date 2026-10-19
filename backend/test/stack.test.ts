@@ -63,6 +63,15 @@ describe("DigestStack", () => {
     });
   });
 
+  it("lets the function put and get episode audio but never delete it", () => {
+    const policies = Object.values(template.findResources("AWS::IAM::Policy"));
+    const statements = policies.flatMap((p) => p.Properties.PolicyDocument.Statement as { Action: string | string[]; Resource: unknown }[]);
+    const media = statements.filter((s) => JSON.stringify(s.Resource).includes("MediaBucket"));
+    const actions = media.flatMap((s) => [s.Action].flat());
+    expect(actions).toEqual(expect.arrayContaining(["s3:PutObject", "s3:GetObject*"]));
+    expect(actions.filter((a) => a.startsWith("s3:Delete"))).toEqual([]);
+  });
+
   it("checks Expo receipts on an hourly schedule", () => {
     template.hasResourceProperties("AWS::Events::Rule", {
       ScheduleExpression: "rate(1 hour)",
