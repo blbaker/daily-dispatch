@@ -86,3 +86,9 @@ test('transcript names speakers and drops audio tags', () => {
   );
   assert.equal(md, '# Test Show\n\n## Open\n\n**Host One:** Hello there.  \n');
 });
+
+test('a provider turn limit starts a new chunk even when characters and voices fit', () => {
+  const turns = [t('S1', 5), t('S2', 5), t('S1', 5), t('S2', 5), t('S1', 5)];
+  assert.deepEqual(planChunks(one(...turns), caps({ maxTurnsPerRequest: 2 })).map((c) => c.turns.length), [2, 2, 1]);
+  assert.equal(planChunks(one(...turns), caps()).length, 1);
+});

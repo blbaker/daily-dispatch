@@ -2,8 +2,10 @@
 
 Turns a day's links into a two-host, call-in style podcast episode. A script
 writer (Claude, OpenAI, a local Ollama model, or any CLI) writes the show from
-your stories, then a voice provider (ElevenLabs or OpenAI) reads it, and
-ffmpeg joins the pieces into one MP3 with a Markdown transcript.
+your stories, then a voice provider (ElevenLabs, OpenAI, Gemini, Amazon Polly,
+Azure AI Speech, or a local server such as Kokoro) reads it, and ffmpeg joins
+the pieces into one MP3 with a Markdown transcript. An optional scheduled job
+makes an episode at the same time every day.
 
 Both halves are adapters behind small interfaces, so adding a model or a
 voice service is one file plus one line in a registry.
@@ -19,15 +21,9 @@ npm install -g daily-dispatch
 daily-dispatch --help
 ```
 
-Or run it once without installing: `npx daily-dispatch --help`.
-
-From this repository:
-
-```sh
-pnpm install
-pnpm --filter daily-dispatch build
-node packages/daily-dispatch/dist/cli/bin.js --help
-```
+Or run it once without installing: `npx daily-dispatch --help`. From this
+repository: `pnpm install && pnpm --filter daily-dispatch build`,
+then `node packages/daily-dispatch/dist/cli/bin.js --help`.
 
 ## Quick start
 
@@ -43,9 +39,8 @@ daily-dispatch podcast make \
 ```
 
 Paid providers always start as a dry run. A dry run still runs free writers
-(Ollama and the command writer), so you can read `episode/script.txt` and
-`episode/transcript.md` before paying for any audio. With a paid writer, it
-saves the exact prompt to `episode/prompt.txt` instead.
+(Ollama, the command writer), so you can read `episode/script.txt` before
+paying for audio; with a paid writer it saves the prompt to `prompt.txt`.
 
 To generate audio, set the provider's key and add `--confirm`:
 
@@ -56,15 +51,14 @@ daily-dispatch podcast make --stories stories.json --writer ollama \
 ```
 
 Output in `episode/`: `episode.mp3`, `script.txt`, `transcript.md`, and a
-`chunks/` cache. Rerunning after a script edit only re-voices the chunks
-whose text changed.
+`chunks/` cache, so a rerun only re-voices the chunks whose text changed.
 
 ## Options
 
 ```
 --stories <file>        Stories JSON: an array, or an edition {"stories": [...]}
 --writer <name>         anthropic, command, ollama, openai
---voice <provider>      elevenlabs, openai
+--voice <provider>      azure, elevenlabs, google, local, openai, polly
 --voices <file>         voices.json (see below)
 --out <dir>             Output directory
 --dry-run               Never call a paid provider
@@ -100,8 +94,9 @@ stories.
 }
 ```
 
-`id` is whatever the provider uses: an ElevenLabs voice id, or an OpenAI
-voice name such as `ash`. `name` appears in the transcript. Tags like `S1`
+`id` is the provider's name for the voice: an ElevenLabs voice id, `ash`
+(OpenAI), `Kore` (Gemini), `Ruth` (Polly), `en-US-AvaMultilingualNeural`
+(Azure), or the local server's voice. `name` appears in the transcript. Tags like `S1`
 and `S2` are hosts and every other tag is a caller, unless you set
 `"role": "host"` or `"role": "caller"`. Optional per-voice fields:
 
@@ -109,7 +104,7 @@ and `S2` are hosts and every other tag is a caller, unless you set
   only. Text-to-Dialogue takes one model and one set of settings for every
   speaker, so a map that uses either field is voiced one turn at a time
   through the text-to-speech endpoint instead.
-- `instructions` (OpenAI): how the voice should speak.
+- `instructions` (OpenAI, Gemini): how the voice should speak.
 
 A real run refuses a voice map that still contains the example placeholder
 ids.
@@ -139,9 +134,8 @@ three.
 | `command` | any CLI, prompt on stdin | none | `claude -p` |
 
 `anthropic` and `openai` are paid and never run without `--confirm`.
-`ollama` sizes the context window to the prompt, because Ollama's default
-window would cut a day's stories short. `command` counts as free: whatever
-the CLI costs is between you and that CLI.
+`ollama` sizes the context window to the prompt, since the default would cut
+a day's stories short. `command` counts as free; its cost is up to the CLI.
 
 ## Voice providers
 
@@ -149,14 +143,16 @@ the CLI costs is between you and that CLI.
 |------|---------|-----------------------|------------|----------|
 | `elevenlabs` | Text-to-Dialogue, several speakers per request | 1,900 | all | $0.08 per 1,000 chars |
 | `openai` | `/v1/audio/speech`, one turn per request | 4,096 | stripped | about $0.015 per 1,000 chars |
+| `google` | Gemini TTS, two prebuilt voices per request | 3,000 | stripped | about $0.014 per 1,000 chars |
+| `polly` | SynthesizeSpeech (SigV4), one turn per request | 3,000 | stripped | $0.016 per 1,000 chars (neural) |
+| `azure` | SSML, one `<voice>` per turn, up to 50 turns | 3,000 | stripped | $0.015 per 1,000 chars |
+| `local` | any OpenAI-compatible `/v1/audio/speech` | 4,000 | stripped | free |
 
 Turns are grouped into requests on line boundaries, never across a segment,
-and never past a provider's character or unique-voice limit. A turn longer
-than the limit is an error that names the turn. The cost figures are list
-prices checked on 2026-10-19 (elevenlabs.io/pricing/api and OpenAI's
-gpt-4o-mini-tts pricing); a subscription plan may cost less per character.
-Before voicing, the ElevenLabs adapter checks the account's remaining
-characters and stops if the episode needs more.
+and never past a provider's character, voice or turn limit. Costs are list
+prices checked on 2026-10-19, with sources in docs/daily-podcast.md.
+`--voice-model` picks Polly's engine (neural, generative, long-form, standard)
+and so its price. Polly and Azure also need a region, checked up front.
 
 ## The two interfaces
 
@@ -180,6 +176,7 @@ interface VoiceProvider {
   requestKey(req: SynthesisRequest): unknown;  // hashed for the chunk cache
   synthesize(req: SynthesisRequest, signal?: AbortSignal): Promise<SynthesisResult>;
   preflight?(chars: number): Promise<void>;    // fail before spending
+  checkConfig?(): void;                        // region, secret: checked before the writer runs
 }
 ```
 
@@ -196,7 +193,6 @@ the other adapters:
 import { readAudio, requireKey, sendJson } from '../http.ts';
 import type { SynthesisRequest, VoiceFactory } from './types.ts';
 
-// One turn per request, so the body is the voice and that turn's text.
 const body = (req: SynthesisRequest) => ({ voice: req.voices[req.turns[0]!.speaker]!.id, text: req.turns[0]!.text });
 
 export const createAcmeVoice: VoiceFactory = (ctx) => ({
@@ -218,14 +214,9 @@ export const createAcmeVoice: VoiceFactory = (ctx) => ({
 });
 ```
 
-```ts
-// src/voices/registry.ts
-export const VOICES = {
-  acme: createAcmeVoice, // the one new line
-  elevenlabs: createElevenLabsVoice,
-  openai: createOpenAIVoice,
-};
-```
+Then add `acme: createAcmeVoice` to `VOICES` in `src/voices/registry.ts`.
+For a body that is not JSON (SSML) or must be signed first, pass `raw`
+instead of `body` and set the content type yourself.
 
 A script writer only needs a function that sends a prompt and returns text.
 `textWriter` adds the prompt, output cleanup, parsing and the retry:
@@ -250,14 +241,27 @@ check the request shape; see `test/voices.test.ts` and `test/writers.test.ts`.
 | `ANTHROPIC_API_KEY` | `--writer anthropic` |
 | `OPENAI_API_KEY` | `--writer openai`, `--voice openai` |
 | `ELEVENLABS_API_KEY` | `--voice elevenlabs` |
+| `GEMINI_API_KEY` | `--voice google` |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, `AWS_REGION` | `--voice polly` |
+| `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION` | `--voice azure` |
+| `LOCAL_TTS_URL`, `LOCAL_TTS_MODEL`, `LOCAL_TTS_API_KEY` | `--voice local`. Default `http://127.0.0.1:8880/v1`, model `kokoro` |
+| `DAILY_DISPATCH_API_URL`, `DAILY_DISPATCH_API_KEY` | `podcast run`: read settings and editions from the backend |
 | `OLLAMA_HOST` | Ollama server, `host:port` or a URL. Default `127.0.0.1:11434` |
 | `OLLAMA_MODEL` | Ollama model. Default `llama3.1:8b` |
 | `DAILY_DISPATCH_WRITER_COMMAND` | Default for `--writer-command` |
 | `LISTENER_NAME`, `LISTENER_TOWN` | Who the hosts say sent the links |
 | `FFMPEG_PATH`, `FFPROBE_PATH` | ffmpeg and ffprobe if they are not on `PATH` |
 
-API keys are read only from the environment. There is no flag or config file
-for them.
+API keys are read only from the environment, never from a flag or the config
+file. `podcast run` also loads `~/.config/daily-dispatch/env` for scheduled jobs.
+
+## Daily episode
+
+`daily-dispatch podcast run --if-due` makes today's episode only when the
+daily podcast is on, the local time is past the set time, and today has none
+yet. `daily-dispatch schedule install` registers an OS job (systemd, cron,
+launchd or Task Scheduler) that runs it every 15 minutes. See
+docs/daily-podcast.md in the repository for settings, schedulers and costs.
 
 ## Library use
 
@@ -280,8 +284,7 @@ console.log(result.estimate.totalUsd);
 ```
 
 Every failure is a `DispatchError` with a `kind` (`no-key`, `unauthorized`,
-`rate-limited`, `script-parse`, `ffmpeg-missing`, and so on) so callers can
-explain each cause.
+`rate-limited`, `script-parse`, `ffmpeg-missing`, ...) for its own message.
 
 ## Development
 

@@ -70,3 +70,12 @@ test('requireKey returns the trimmed key or a "no-key" error naming the variable
   assert.throws(() => requireKey({}, 'ACME_KEY', 'acme'), (e) => isDispatchError(e, 'no-key') && /ACME_KEY/.test(e.message));
   assert.throws(() => requireKey({ ACME_KEY: '  ' }, 'ACME_KEY', 'acme'), (e) => isDispatchError(e, 'no-key'));
 });
+
+test('sends a raw body as-is with the caller\'s content type', async () => {
+  const { f, opts } = harness(reply(200, 'ok'));
+  await sendJson('https://api.acme.test/x', { headers: { 'content-type': 'application/ssml+xml' }, raw: '<speak/>' }, opts);
+  const [call] = f.calls;
+  assert.equal(call?.method, 'POST');
+  assert.equal(call?.body, '<speak/>');
+  assert.equal(call?.headers['content-type'], 'application/ssml+xml');
+});

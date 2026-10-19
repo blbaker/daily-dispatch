@@ -40,6 +40,36 @@ const MUTANTS: Mutant[] = [
   { id: 'M15', file: 'src/podcast.ts', from: 'await o.ffmpeg.check();', to: '', test: 'test/podcast.test.ts', expect: /missing ffmpeg stops a real run/ },
   // Toward false positives: flag any upper-case word before a colon, not just known speakers.
   { id: 'M16', file: 'src/script/parse.ts', from: 'const second = speakers.find(', to: 'const second = /\\b[A-Z0-9_]+(?=:)/.exec(words)?.[0] ?? speakers.find(', test: 'test/parse.test.ts', expect: /a colon after an ordinary word is still fine/ },
+  { id: 'M17', file: 'src/voices/google.ts', from: "speakers.length > 2", to: "speakers.length > 3", test: 'test/voices-google.test.ts', expect: /three speakers in one request is refused/ },
+  { id: 'M18', file: 'src/voices/google.ts', from: "/^voice(key)?_/.test(v.id)", to: "false", test: 'test/voices-google.test.ts', expect: /custom voices go one turn at a time/ },
+  { id: 'M19', file: 'src/voices/google.ts', from: "const multi = speakers.length === 2;", to: "const multi = speakers.length >= 1;", test: 'test/voices-google.test.ts', expect: /one speaker uses the single-voice form/ },
+  { id: 'M20', file: 'src/voices/sigv4.ts', from: "day), opts.region), opts.service)", to: "day), opts.service), opts.region)", test: 'test/voices-polly.test.ts', expect: /get-vanilla/ },
+  { id: 'M21', file: 'src/voices/sigv4.ts', from: "if (creds.sessionToken) headers['x-amz-security-token'] = creds.sessionToken;", to: "", test: 'test/voices-polly.test.ts', expect: /sign the session token/ },
+  { id: 'M22', file: 'src/voices/polly.ts', from: "if (!REGION.test(r))", to: "if (false)", test: 'test/voices-polly.test.ts', expect: /secret or region is caught by checkConfig/ },
+  { id: 'M23', file: 'src/voices/polly.ts', from: "costPerChar: price / 1_000_000,", to: "costPerChar: 16 / 1_000_000,", test: 'test/voices-polly.test.ts', expect: /the engine sets both the request and the price/ },
+  { id: 'M24', file: 'src/voices/azure.ts', from: ">${esc(t.text)}</voice>", to: ">${t.text}</voice>", test: 'test/voices-azure.test.ts', expect: /XML-escaped/ },
+  { id: 'M25', file: 'src/voices/azure.ts', from: "maxTurnsPerRequest: 50,", to: "", test: 'test/voices-azure.test.ts', expect: /at most 50 voice elements/ },
+  { id: 'M26', file: 'src/audio/chunk.ts', from: " || turns.length >= (caps.maxTurnsPerRequest ?? Infinity)", to: "", test: 'test/chunk.test.ts', expect: /a provider turn limit starts a new chunk/ },
+  { id: 'M27', file: 'src/podcast.ts', from: "o.voice.checkConfig?.();", to: "", test: 'test/podcast.test.ts', expect: /config check \(region, secret\) runs before the writer/ },
+  { id: 'M28', file: 'src/voices/local.ts', from: "const key = ctx.env['LOCAL_TTS_API_KEY']?.trim();", to: "const key = 'leaked';", test: 'test/voices-local.test.ts', expect: /default Kokoro address/ },
+  { id: 'M29', file: 'src/schedule/clock.ts', from: "if (local.minutes < target)", to: "if (local.minutes <= target)", test: 'test/schedule-clock.test.ts', expect: /at and after the time it is due/ },
+  { id: 'M30', file: 'src/schedule/clock.ts', from: "'en-US', {\n      timeZone,", to: "'en-US', {\n      timeZone: 'UTC',", test: 'test/schedule-clock.test.ts', expect: /timezone edge: the local date/ },
+  { id: 'M31', file: 'src/schedule/clock.ts', from: "day.attempts >= MAX_ATTEMPTS", to: "day.attempts > MAX_ATTEMPTS", test: 'test/schedule-clock.test.ts', expect: /three failed attempts on a date stop retries/ },
+  { id: 'M32', file: 'src/schedule/clock.ts', from: "    throw new DispatchError('invalid-input', `podcast timezone \"${timeZone}\" is not an IANA time zone such as America/Chicago`);", to: "    return localTime(now, 'UTC');", test: 'test/schedule-clock.test.ts', expect: /unknown timezone or a malformed time is refused/ },
+  { id: 'M33', file: 'src/schedule/clock.ts', from: "if (!s.enabled) return { due: false, reason: 'disabled' };", to: "", test: 'test/schedule-clock.test.ts', expect: /a disabled schedule never runs/ },
+  { id: 'M34', file: 'src/schedule/run.ts', from: "if (!(isDispatchError(e) && BEFORE_SPENDING.has(e.kind))) {", to: "if (true) {", test: 'test/podcast-run.test.ts', expect: /missing key fails before spending and does not use up an attempt/ },
+  { id: 'M35', file: 'src/schedule/run.ts', from: "o.force ? undefined : await previousScript(", to: "true ? undefined : await previousScript(", test: 'test/podcast-run.test.ts', expect: /a retry reuses the script/ },
+  { id: 'M36', file: 'src/schedule/run.ts', from: "    date = d.date;", to: "    date = o.now.toISOString().slice(0, 10);", test: 'test/podcast-run.test.ts', expect: /the episode date is the local date/ },
+  { id: 'M37', file: 'src/schedule/stories-source.ts', from: "(edition as { inProgress?: unknown }).inProgress === true", to: "false", test: 'test/podcast-run.test.ts', expect: /still in progress, or missing, means wait/ },
+  { id: 'M38', file: 'src/schedule/state.ts', from: "if (age < STALE_MS) return null;", to: "if (false) return null;", test: 'test/podcast-run.test.ts', expect: /a run already in progress/ },
+  { id: 'M39', file: 'src/schedule/config.ts', from: "if (backend !== undefined) {", to: "if (false) {", test: 'test/schedule-config.test.ts', expect: /settings come from the backend/ },
+  { id: 'M40', file: 'src/schedule/config.ts', from: "return { ...parseEnvFile(text), ...env };", to: "return { ...env, ...parseEnvFile(text) };", test: 'test/schedule-config.test.ts', expect: /a variable set in the shell wins/ },
+  { id: 'M41', file: 'src/schedule/jobs.ts', from: ".replace(/%/g, '%%').replace(/\\$/g, '$$$$')}\"`;", to: ".replace(/\\$/g, '$$$$')}\"`;", test: 'test/schedule-jobs.test.ts', expect: /% is escaped, because systemd expands/ },
+  { id: 'M42', file: 'src/schedule/jobs.ts', from: "`'${s.replace(/'/g, `'\\\\''`)}'`.replace(/%/g, '\\\\%');", to: "`'${s.replace(/'/g, `'\\\\''`)}'`;", test: 'test/schedule-jobs.test.ts', expect: /cron: one marked block, shell-quoted/ },
+  { id: 'M43', file: 'src/schedule/jobs.ts', from: "const kept = start === -1 || end === -1 ? lines : [...lines.slice(0, start), ...lines.slice(end + 1)];", to: "const kept = lines;", test: 'test/schedule-jobs.test.ts', expect: /replaces our block and leaves every other line alone/ },
+  { id: 'M44', file: 'src/cli/schedule.ts', from: "  if (flags.print) {", to: "  if (false) {", test: 'test/schedule-cli.test.ts', expect: /--print shows every file and command and changes nothing/ },
+  { id: 'M45', file: 'src/schedule/install.ts', from: "return (await io.exists('/run/systemd/system')) ? 'systemd' : 'cron';", to: "return 'cron';", test: 'test/schedule-cli.test.ts', expect: /detectKind/ },
+  { id: 'M46', file: 'src/schedule/install.ts', from: "Buffer.from([0xff, 0xfe])", to: "Buffer.from([])", test: 'test/schedule-cli.test.ts', expect: /UTF-16 task XML/ },
 ];
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -76,7 +106,8 @@ for (const m of chosen) {
   }
   let out = '';
   try {
-    fs.writeFileSync(file, original.replace(m.from, m.to));
+    // A function replacement inserts `to` literally; a string would expand $$ and $&.
+    fs.writeFileSync(file, original.replace(m.from, () => m.to));
     out = runTests(m.test);
   } finally {
     fs.writeFileSync(file, original);

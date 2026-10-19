@@ -75,6 +75,7 @@ export async function makePodcast(o: MakeOptions): Promise<MakeResult> {
   if (!o.dryRun) {
     if (runWriter && o.writer.keyEnv) requireKey(o.env, o.writer.keyEnv, o.writer.name);
     if (o.voice.keyEnv) requireKey(o.env, o.voice.keyEnv, o.voice.name);
+    o.voice.checkConfig?.();
     const placeholders = placeholderVoices(o.voices);
     if (placeholders.length > 0) {
       throw new DispatchError('invalid-input', `voices file still has example placeholder ids for: ${placeholders.join(', ')}`);

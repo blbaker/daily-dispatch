@@ -46,7 +46,7 @@ test('--version prints the package version and --help lists the commands', async
 test('podcast make --help documents every flag and env var', async () => {
   const t = await setup();
   assert.equal(await run(['podcast', 'make', '--help'], t.io), 0);
-  for (const s of ['--stories', '--writer', '--voice ', '--voices', '--out', '--dry-run', '--confirm', '--script', 'ELEVENLABS_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'OLLAMA_HOST']) {
+  for (const s of ['--stories', '--writer', '--voice ', '--voices', '--out', '--dry-run', '--confirm', '--script', 'ELEVENLABS_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'OLLAMA_HOST', 'GEMINI_API_KEY', 'AWS_REGION', 'AZURE_SPEECH_KEY', 'AZURE_SPEECH_REGION', 'LOCAL_TTS_URL']) {
     assert.ok(t.text().includes(s), `help mentions ${s}`);
   }
 });

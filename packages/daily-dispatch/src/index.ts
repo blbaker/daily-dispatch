@@ -24,6 +24,12 @@ export type { VoiceProvider, VoiceCapabilities, SynthesisRequest, SynthesisResul
 export { VOICES, getVoiceProvider } from './voices/registry.ts';
 export { createElevenLabsVoice } from './voices/elevenlabs.ts';
 export { createOpenAIVoice } from './voices/openai.ts';
+export { createGoogleVoice } from './voices/google.ts';
+export { createPollyVoice } from './voices/polly.ts';
+export { createAzureVoice } from './voices/azure.ts';
+export { createLocalVoice, DEFAULT_LOCAL_TTS_URL } from './voices/local.ts';
+export { signV4 } from './voices/sigv4.ts';
+export type { AwsCredentials, SignableRequest } from './voices/sigv4.ts';
 
 export { planChunks, filterTags } from './audio/chunk.ts';
 export type { Chunk } from './audio/chunk.ts';

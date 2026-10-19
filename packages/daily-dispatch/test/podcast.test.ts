@@ -146,3 +146,14 @@ test('missing ffmpeg stops a real run before the writer runs', async () => {
   await assert.rejects(makePodcast(await opts({ writer: r.writer, voice: r.voice, ffmpeg: r.ffmpeg })), (e) => isDispatchError(e, 'ffmpeg-missing'));
   assert.deepEqual(r.events, ['ffmpeg.check']);
 });
+
+test('a provider config check (region, secret) runs before the writer spends anything', async () => {
+  const r = recorder();
+  const { DispatchError } = await import('../src/errors.ts');
+  r.voice.checkConfig = () => {
+    r.events.push('checkConfig');
+    throw new DispatchError('no-key', 'fakevoice needs FAKE_REGION');
+  };
+  await assert.rejects(makePodcast(await opts({ writer: r.writer, voice: r.voice, ffmpeg: r.ffmpeg })), (e) => isDispatchError(e, 'no-key') && /FAKE_REGION/.test(e.message));
+  assert.deepEqual(r.events, ['checkConfig']);
+});
