@@ -1,0 +1,59 @@
+// Gradle init script used by scripts/ci/generate-notices.mts. It adds a
+// thirdPartyPoms task to the :app project that lists every external module
+// on the release runtime classpath with the path of its POM, followed by the
+// parent POMs those inherit from (many POMs only declare their license in a
+// parent). Gradle downloads any POM it has not cached yet. Project
+// dependencies (the React Native and Expo modules built from node_modules)
+// are not external modules, so they are not listed.
+//
+// From app/android, after `npx expo prebuild --platform android`:
+//   ./gradlew -I ../../scripts/ci/notices/android-poms.init.gradle \
+//     :app:thirdPartyPoms -PnoticesOut=<absolute path> --no-configuration-cache
+//
+// Each output line is: <module|parent> TAB <group:name:version> TAB <POM path, or "-">
+// It is written in Groovy because Gradle init scripts cannot be TypeScript.
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.artifacts.result.ResolvedArtifactResult
+import org.gradle.maven.MavenModule
+import org.gradle.maven.MavenPomArtifact
+
+allprojects { p ->
+  if (p.path != ':app') return
+  p.tasks.register('thirdPartyPoms') {
+    doLast {
+      def out = new File(p.property('noticesOut').toString())
+      def findPom = { String coord ->
+        def parts = coord.split(':')
+        def result = p.dependencies.createArtifactResolutionQuery()
+          .forModule(parts[0], parts[1], parts[2])
+          .withArtifacts(MavenModule, MavenPomArtifact)
+          .execute()
+        def files = result.resolvedComponents
+          .collectMany { it.getArtifacts(MavenPomArtifact) }
+          .findAll { it instanceof ResolvedArtifactResult }
+          .collect { it.file }
+        files ? files[0] : null
+      }
+      def queue = p.configurations.getByName('releaseRuntimeClasspath')
+        .incoming.resolutionResult.allComponents
+        .collect { it.id }
+        .findAll { it instanceof ModuleComponentIdentifier }
+        .collect { ['module', "${it.group}:${it.module}:${it.version}".toString()] }
+      def seen = [] as Set
+      def lines = []
+      while (queue) {
+        def (role, coord) = queue.remove(0)
+        if (!seen.add(coord)) continue
+        def pom = findPom(coord)
+        lines << "${role}\t${coord}\t${pom ?: '-'}".toString()
+        if (pom == null) continue
+        def parent = new groovy.xml.XmlSlurper().parse(pom).parent
+        if (parent.artifactId.text()) {
+          queue << ['parent', "${parent.groupId.text()}:${parent.artifactId.text()}:${parent.version.text()}".toString()]
+        }
+      }
+      out.text = lines.sort().join('\n') + '\n'
+      println("thirdPartyPoms: ${lines.size()} POMs listed in ${out.name}")
+    }
+  }
+}
