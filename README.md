@@ -178,8 +178,6 @@ parts have only been checked with mocks or on some platforms:
 - Push delivery through FCM, APNs or a browser push service has not been
   tried, because it needs real credentials. The push routes in the backend
   have not been deployed.
-- The Settings screen is designed but not in the app yet. Until it is, change
-  settings with `PUT /settings` or the local config file.
 - Desktop notifications fall back to an in-app strip until the engine's
   notifications module is released. The macOS app has passed its headless
   render check but has not been opened in a window.
