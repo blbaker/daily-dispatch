@@ -6,7 +6,9 @@
 //   node e2e/screens.ts <dist dir> <out dir> <api port>
 //
 // The api port must match the EXPO_PUBLIC_API_URL the export was built with,
-// because Expo inlines that value into the bundle.
+// because Expo inlines that value into the bundle. Export with --clear when
+// switching EXPO_PUBLIC_EINK: Metro's cache otherwise keeps the value from
+// the previous build, and the "e-ink" export comes out as the phone one.
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { chromium, type Page } from "playwright";

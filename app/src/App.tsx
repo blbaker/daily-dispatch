@@ -12,6 +12,8 @@ import { styles } from "./appStyles";
 import { Center, ErrScreen } from "./Center";
 import DigestView from "./DigestView";
 import ArchiveList from "./ArchiveList";
+import NotificationBanner from "./NotificationBanner";
+import { openEpisode, useNotifications, type OpenTarget } from "./notifications";
 
 const EINK = String(process.env.EXPO_PUBLIC_EINK) === "true";
 
@@ -45,18 +47,33 @@ function Main() {
   // bumped on every list refresh so the open digest re-fetches too
   const [tick, setTick] = useState(0);
 
-  const loadList = useCallback(async () => {
+  const loadList = useCallback(async (): Promise<EditionMeta[] | null> => {
     try {
       setErr(null);
       const eds = await listEditions();
       setEditions(eds);
       if (eds[0]) setLatestId(eds[0].id);
       setTick((t) => t + 1);
+      return eds;
     } catch (e: any) {
       setErr(apiConfigured() ? String(e.message || e) : "API not configured");
+      return null;
     }
   }, []);
   useEffect(() => { loadList(); }, [loadList]);
+
+  // A tapped notification opens its edition (on Today when it is the newest)
+  // or plays its episode. A push that arrives while the app is open refreshes
+  // the list.
+  const openTarget = useCallback(async (t: OpenTarget) => {
+    if (t.kind === "episode") { void openEpisode(t.id); return; }
+    setArticle(null);
+    const eds = await loadList();
+    if (eds?.[0]?.id === t.id) { setTab("today"); return; }
+    setTab("archive");
+    setOpenEd(t.id);
+  }, [loadList]);
+  useNotifications({ onOpen: openTarget, onReceive: () => { loadList(); } });
 
   // Real-time Today: refresh whenever the app returns to the foreground, and
   // poll every 60 s while it is open (new links land via the Pushbullet bridge).
@@ -170,6 +187,7 @@ function Main() {
           <Text style={[s.tabTxt, tab === "archive" && s.tabActive]}>Archive</Text>
         </Pressable>
       </View>
+      <NotificationBanner eink={EINK} topInset={insets.top} onOpen={openTarget} />
     </View>
   );
 }
