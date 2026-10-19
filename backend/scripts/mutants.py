@@ -23,6 +23,11 @@ MUTANTS = [
      "", "expo dead token kept"),
     ("lambda/push/webpush.ts", "if (status === 404 || status === 410) result.invalid.push(devices[i].id);",
      "", "webpush gone subscription kept"),
+    ("lambda/presign.ts", 'const canonical = [method, path,', 'const canonical = ["GET", path,',
+     "presign ignores the method"),
+    ("lambda/routes/episodes.ts", "if (!(await audioUploaded(deps, episode))) {", "if (false) {",
+     "episode notifies before the upload"),
+    ("lambda/routes/episodes.ts", 'if (!e || e.status !== "ready")', "if (!e)", "uploading episode served"),
 ]
 
 def run_suite() -> bool:

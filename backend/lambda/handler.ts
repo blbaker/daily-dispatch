@@ -9,6 +9,7 @@ import { Route, matchRoute } from "./router";
 import { appReleaseRoutes } from "./routes/app-release";
 import { deviceRoutes } from "./routes/devices";
 import { editionRoutes } from "./routes/editions";
+import { episodeRoutes } from "./routes/episodes";
 import { notificationRoutes } from "./routes/notifications";
 import { settingsRoutes } from "./routes/settings";
 
@@ -18,6 +19,7 @@ export const ROUTES: Route[] = [
   ...settingsRoutes,
   ...deviceRoutes,
   ...notificationRoutes,
+  ...episodeRoutes,
 ];
 
 const PLACEHOLDER_KEY = "PLACEHOLDER_SET_AT_DEPLOY";
