@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { loadConfig, parseEnvFile, resolveSettings } from '../src/schedule/config.ts';
+import { loadConfig, parseEnvFile, resolveSettings, withEnvFile } from '../src/schedule/config.ts';
 import { defaultPaths } from '../src/schedule/paths.ts';
 import { isDispatchError } from '../src/errors.ts';
 import { fakeFetch, forbiddenFetch, reply } from './helpers.ts';
@@ -84,4 +84,14 @@ test('loadConfig: a missing default file is empty, a missing explicit file is an
 test('env file: KEY=VALUE lines with comments and quotes; the real environment wins', () => {
   const parsed = parseEnvFile('# keys\nGEMINI_API_KEY="g 1"\n\nexport AZURE_SPEECH_REGION=eastus\nBAD LINE\nOPENAI_API_KEY=\'o=1\'\n');
   assert.deepEqual(parsed, { GEMINI_API_KEY: 'g 1', AZURE_SPEECH_REGION: 'eastus', OPENAI_API_KEY: 'o=1' });
+});
+
+test('env file: loaded under the real environment, so a variable set in the shell wins; a missing file is fine', async () => {
+  const { dir } = await configFile({});
+  const file = path.join(dir, 'env');
+  await fs.writeFile(file, 'GEMINI_API_KEY=from-file\nAZURE_SPEECH_REGION=eastus\n');
+  const env = await withEnvFile({ GEMINI_API_KEY: 'from-shell' }, file);
+  assert.equal(env['GEMINI_API_KEY'], 'from-shell');
+  assert.equal(env['AZURE_SPEECH_REGION'], 'eastus');
+  assert.deepEqual(await withEnvFile({ A: '1' }, path.join(dir, 'missing')), { A: '1' });
 });

@@ -154,3 +154,11 @@ test('podcast run --if-due stamps each line with the time; --log appends them, a
   assert.equal(await bad.go('--log', badLog), 2);
   assert.match(await fs.readFile(badLog, 'utf8'), /^2026-10-19T12:00:00\.000Z error: openai is a paid provider/m);
 });
+
+test('podcast run --if-due: a missing key fails before spending and does not use up an attempt', async () => {
+  const t = await setup({ podcast: { voice: 'openai' }, config: { confirm: true }, now: '2026-10-19T12:00:00Z' });
+  assert.equal(await t.go(), 1);
+  assert.match(t.errors(), /OPENAI_API_KEY/);
+  assert.equal(t.f.calls.length, 0);
+  await assert.rejects(fs.access(t.state), 'no attempt is recorded for a configuration problem');
+});
