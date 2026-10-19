@@ -7,10 +7,11 @@ import { Deps, defaultDeps } from "./deps";
 import { HttpError, HttpEvent, HttpResult, extractKey, json, keyMatches, methodAndPath, query } from "./http";
 import { Route, matchRoute } from "./router";
 import { appReleaseRoutes } from "./routes/app-release";
+import { deviceRoutes } from "./routes/devices";
 import { editionRoutes } from "./routes/editions";
 import { settingsRoutes } from "./routes/settings";
 
-export const ROUTES: Route[] = [...editionRoutes, ...appReleaseRoutes, ...settingsRoutes];
+export const ROUTES: Route[] = [...editionRoutes, ...appReleaseRoutes, ...settingsRoutes, ...deviceRoutes];
 
 const PLACEHOLDER_KEY = "PLACEHOLDER_SET_AT_DEPLOY";
 
