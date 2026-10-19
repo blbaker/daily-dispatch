@@ -180,8 +180,16 @@ export function checkWorkflows(files: WorkflowFile[], exists: (rel: string) => b
     }
 
     // W8 (job level): only the job that stages a publish may mint a token.
+    // The one other holder is a GitHub Pages deploy, which authenticates
+    // with OIDC: it must hold pages: write, use actions/deploy-pages, and run
+    // no registry command at all.
     for (const [jobName, job] of Object.entries(jobs)) {
       if (!isRecord(job) || !isRecord(job.permissions) || job.permissions['id-token'] !== 'write') continue;
+      const steps = Array.isArray(job.steps) ? job.steps : [];
+      const pagesDeploy = job.permissions.pages === 'write'
+        && steps.some((s) => isRecord(s) && typeof s.uses === 'string' && s.uses.startsWith('actions/deploy-pages@'))
+        && !hits.some((h) => h.job === jobName);
+      if (pagesDeploy) continue;
       if (!hits.some((h) => h.job === jobName && h.armed && h.label === 'npm stage publish')) {
         fail('W8', `${name}:${jobName} grants id-token: write but does not stage a publish`);
       }
