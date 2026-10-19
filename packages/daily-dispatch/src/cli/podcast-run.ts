@@ -15,6 +15,10 @@ DAILY_DISPATCH_API_KEY are set (what the app's Settings screen saves),
 otherwise the "podcast" section of the config file. At most one episode is
 made per local date; the state file remembers which dates are done.
 
+With those two variables set, a new episode is also uploaded to the backend,
+which tells the app it is ready. A failed upload exits 1, and the next run
+retries just the upload.
+
   --if-due            Do nothing unless the podcast is enabled, the local time
                       is past the set time, and today has no episode yet. The
                       scheduled job runs this every 15 minutes.
