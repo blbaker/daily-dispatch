@@ -1,6 +1,7 @@
 {
   "name": "daily-dispatch-repo",
   "private": true,
+  "type": "module",
   "description": "Workspace root for the daily-dispatch npm package. The app and backend install separately.",
   "engines": {
     "node": ">=22.18"
@@ -8,6 +9,14 @@
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "release:check": "node tools/release/metadata.ts && node tools/release/pack.ts",
+    "release:test": "node --test \"tools/release/test/*.test.ts\"",
+    "release:typecheck": "tsc -p tools/release/tsconfig.json",
+    "release:rehearse": "node tools/release/rehearse.ts"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "7.0.2"
   }
 }
