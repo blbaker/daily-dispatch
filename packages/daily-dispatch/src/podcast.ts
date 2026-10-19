@@ -51,6 +51,8 @@ export interface MakeResult {
   estimate: Estimate;
   files: { prompt?: string; script?: string; transcript?: string; episode?: string };
   billedChars?: number;
+  /** Length of the finished episode in seconds; 0 when ffprobe could not read it. */
+  durationSec?: number;
 }
 
 /**
@@ -75,6 +77,7 @@ export async function makePodcast(o: MakeOptions): Promise<MakeResult> {
   if (!o.dryRun) {
     if (runWriter && o.writer.keyEnv) requireKey(o.env, o.writer.keyEnv, o.writer.name);
     if (o.voice.keyEnv) requireKey(o.env, o.voice.keyEnv, o.voice.name);
+    o.voice.checkConfig?.();
     const placeholders = placeholderVoices(o.voices);
     if (placeholders.length > 0) {
       throw new DispatchError('invalid-input', `voices file still has example placeholder ids for: ${placeholders.join(', ')}`);
@@ -136,6 +139,7 @@ export async function makePodcast(o: MakeOptions): Promise<MakeResult> {
   }
   files.episode = path.join(out, 'episode.mp3');
   await assembleEpisode(audio.map((a) => ({ path: a.path, lastInSegment: a.chunk.lastInSegment })), files.episode, path.join(out, 'parts'), o.ffmpeg);
-  o.log(`OUT ${files.episode} (${((await o.ffmpeg.duration(files.episode)) / 60).toFixed(1)} min), billed characters=${billedChars}`);
-  return { ...base, dryRun: false, billedChars };
+  const durationSec = await o.ffmpeg.duration(files.episode);
+  o.log(`OUT ${files.episode} (${(durationSec / 60).toFixed(1)} min), billed characters=${billedChars}`);
+  return { ...base, dryRun: false, billedChars, durationSec };
 }

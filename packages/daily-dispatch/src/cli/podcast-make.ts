@@ -33,7 +33,8 @@ Options:
   --minutes <n>           Target length in minutes (default 10)
   --title <text>          Show title (default "Link Talk")
   --model <id>            Writer model (anthropic, openai, ollama)
-  --voice-model <id>      Voice model (elevenlabs: eleven_v4, openai: gpt-4o-mini-tts)
+  --voice-model <id>      Voice model (elevenlabs: eleven_v4, openai: gpt-4o-mini-tts,
+                          google: gemini-3.8-flash-tts, polly: neural engine, local: kokoro)
   --writer-command <cmd>  Command for --writer command (default "claude -p")
   --style-guide <file>    Replace the built-in style guide
   --listener-name <name>  Who sent the links (default: LISTENER_NAME)
@@ -43,6 +44,10 @@ Environment:
   ANTHROPIC_API_KEY       --writer anthropic
   OPENAI_API_KEY          --writer openai, --voice openai
   ELEVENLABS_API_KEY      --voice elevenlabs
+  GEMINI_API_KEY          --voice google
+  AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION   --voice polly
+  AZURE_SPEECH_KEY, AZURE_SPEECH_REGION                  --voice azure
+  LOCAL_TTS_URL           --voice local server (default http://127.0.0.1:8880/v1)
   OLLAMA_HOST             Ollama server (default 127.0.0.1:11434)
   OLLAMA_MODEL            Ollama model (default llama3.1:8b)
   DAILY_DISPATCH_WRITER_COMMAND  Default for --writer-command

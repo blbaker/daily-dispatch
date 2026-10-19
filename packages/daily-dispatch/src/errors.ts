@@ -18,7 +18,8 @@ export type ErrorKind =
   | 'budget' // the account cannot cover the characters this episode needs
   | 'command-failed' // the command writer's CLI exited non-zero or timed out
   | 'ffmpeg-missing'
-  | 'ffmpeg-failed';
+  | 'ffmpeg-failed'
+  | 'upload-failed'; // the episode exists, but publishing it to the backend did not finish
 
 export class DispatchError extends Error {
   readonly kind: ErrorKind;

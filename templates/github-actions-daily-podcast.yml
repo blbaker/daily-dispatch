@@ -1,0 +1,105 @@
+# Optional: make the daily Daily Dispatch podcast episode on GitHub Actions,
+# for people with no machine that is always on. Copy this file to
+# .github/workflows/daily-podcast.yml in a repository you own.
+#
+# Setup, costs and the other schedulers: docs/daily-podcast.md.
+#
+# How it works: every hour the job runs `daily-dispatch podcast run --if-due`,
+# which does nothing unless the podcast is enabled, the local time is past the
+# set time, and today has no episode yet. The schedule (on/off, time, time
+# zone, writer, voice) comes from the backend's /settings when
+# DAILY_DISPATCH_API_URL is set, so changing the time in the app needs no edit
+# here. The state file that remembers finished dates is kept in the Actions
+# cache between runs. Each new episode is uploaded as a workflow artifact and,
+# when DAILY_DISPATCH_API_URL is set, published to the backend for the app.
+# Only the state file is cached, so a run that fails partway starts the
+# script over on the next try instead of reusing it as a local job would.
+#
+# Hosted runners have no Ollama, no local TTS server and no `claude` CLI, so
+# pick a cloud writer (anthropic or openai) and a cloud voice. Those are paid:
+# the config file needs "confirm": true before the job will spend anything.
+
+name: Daily podcast
+
+on:
+  schedule:
+    # Hourly at minute 7. GitHub may start scheduled runs late, and pauses
+    # them after 60 days without commits on a public repository.
+    - cron: '7 * * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Make today's episode even if one exists
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-podcast
+  cancel-in-progress: false
+
+env:
+  # The published package version to run.
+  DAILY_DISPATCH_VERSION: 0.1.0
+  # Config file in this repository (see docs/daily-podcast.md for the format).
+  DAILY_DISPATCH_CONFIG: daily-dispatch/config.json
+  STATE_DIR: .daily-dispatch-state
+
+jobs:
+  episode:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - name: Restore the state file
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.STATE_DIR }}
+          key: daily-podcast-state-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: daily-podcast-state-
+
+      - name: Install ffmpeg
+        run: command -v ffmpeg >/dev/null || (sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends ffmpeg)
+
+      - name: Make the episode if it is due
+        env:
+          DAILY_DISPATCH_API_URL: ${{ secrets.DAILY_DISPATCH_API_URL }}
+          DAILY_DISPATCH_API_KEY: ${{ secrets.DAILY_DISPATCH_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          AZURE_SPEECH_KEY: ${{ secrets.AZURE_SPEECH_KEY }}
+          AZURE_SPEECH_REGION: ${{ vars.AZURE_SPEECH_REGION }}
+          FORCE: ${{ inputs.force == true }}
+        run: |
+          args=(podcast run --if-due --config "$DAILY_DISPATCH_CONFIG" --state "$STATE_DIR/state.json" --out episodes)
+          if [ "$FORCE" = true ]; then args+=(--force); fi
+          npx --yes "daily-dispatch@${DAILY_DISPATCH_VERSION}" "${args[@]}"
+
+      - name: Save the state file
+        if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.STATE_DIR }}
+          key: daily-podcast-state-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Upload the episode
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: daily-podcast-${{ github.run_id }}
+          path: |
+            episodes/*/episode.mp3
+            episodes/*/transcript.md
+          if-no-files-found: ignore
+          retention-days: 14

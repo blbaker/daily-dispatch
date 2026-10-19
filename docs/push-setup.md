@@ -10,6 +10,8 @@ a new podcast episode is ready. Each platform gets them a different way.
 | Web | Web Push, signed with VAPID | VAPID key pair and a contact address |
 | macOS, Linux, Windows | The app polls `GET /notifications/since` | None |
 
+How the app registers and handles taps is in [push-clients.md](push-clients.md).
+
 Nothing breaks while a credential is missing. The provider that needs it stays
 off, the Lambda logs one line saying why, and everything else keeps working.
 `GET /push/config` shows what is on.
@@ -148,9 +150,9 @@ export KEY=<your api key>
    missing or invalid. The function's CloudWatch log has a line starting with
    `push:` that says which.
 
-2. Register the device. The app does this itself once its notification code
-   is in. To do it by hand, take the Expo push token the app logs (it looks
-   like `ExponentPushToken[...]`):
+2. Register the device. The app does this itself on launch (see
+   [push-clients.md](push-clients.md)). To do it by hand, take an Expo push
+   token (it looks like `ExponentPushToken[...]`):
 
    ```sh
    curl -s -X POST "$API/devices" -H "x-api-key: $KEY" -H "content-type: application/json" \
