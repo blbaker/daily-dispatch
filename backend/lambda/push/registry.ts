@@ -1,5 +1,5 @@
-// Builds the push providers from credentials. Loaded once per Lambda
-// container, on first use, so requests that never push never touch SSM.
+// Builds the push providers from credentials. Loaded on first use, so
+// requests that never push never touch SSM.
 import { SSMClient } from "@aws-sdk/client-ssm";
 import { ExpoProvider, createExpoProvider } from "./expo";
 import { PushSecrets, loadPushSecrets } from "./config";
@@ -26,11 +26,28 @@ export function createProviders(
   return { expo, webpush, vapidPublicKey: webpush.enabled ? (s.VAPID_PUBLIC_KEY ?? null) : null };
 }
 
-/** Lazy, cached loader for the live Lambda. */
-export function liveProviders(o: { fetch: typeof fetch; log: Log }): () => Promise<PushProviders> {
+const RELOAD_MS = 15 * 60_000;
+
+/**
+ * Lazy, cached loader for the live Lambda. Credentials are re-read every 15
+ * minutes, so adding or rotating an SSM parameter takes effect without a
+ * deploy, while a busy container still makes at most four SSM calls an hour.
+ */
+export function liveProviders(o: {
+  fetch: typeof fetch;
+  log: Log;
+  load?: () => Promise<PushSecrets>;
+  now?: () => number;
+}): () => Promise<PushProviders> {
+  const load = o.load ?? (() => loadPushSecrets(process.env, new SSMClient({}), o.log));
+  const now = o.now ?? Date.now;
   let loading: Promise<PushProviders> | undefined;
+  let loadedAt = 0;
   return () => {
-    loading ??= loadPushSecrets(process.env, new SSMClient({}), o.log).then((s) => createProviders(s, o));
+    if (!loading || now() - loadedAt > RELOAD_MS) {
+      loadedAt = now();
+      loading = load().then((s) => createProviders(s, o));
+    }
     return loading;
   };
 }
