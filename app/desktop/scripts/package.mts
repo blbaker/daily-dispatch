@@ -12,7 +12,7 @@
 // exactly as for `npm run desktop`. Packages are per OS: the engine is
 // native code, so build each one on (or for) its own OS.
 import { spawnSync } from "node:child_process";
-import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, renameSync, writeFileSync } from "node:fs";
+import { chmodSync, closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readSync, renameSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { appConfig, bundle, desktopRoot, engine } from "./lib.mts";
 
@@ -99,12 +99,25 @@ function packageMac(root: string, bundleDir: string): void {
   );
 }
 
+// Windows ships bsdtar as System32\tar.exe, which writes a real zip. Git Bash
+// (and the Windows CI runner's bash shell) puts GNU tar first on PATH, and
+// GNU tar writes a plain tar under a .zip name, so call the system one by path.
+function tarCommand(): string {
+  return os === "win32" ? join(process.env.SystemRoot ?? "C:\\Windows", "System32", "tar.exe") : "tar";
+}
+
 function archive(root: string): string {
   const win = os === "win32";
   const file = join(distDir, `${name}${win ? ".zip" : ".tar.gz"}`);
   const args = win ? ["-a", "-c", "-f", file, "-C", distDir, name] : ["-czf", file, "-C", distDir, name];
-  const r = spawnSync("tar", args, { stdio: "inherit" });
+  const r = spawnSync(tarCommand(), args, { stdio: "inherit" });
   if (r.status !== 0) throw new Error(`tar failed (exit ${r.status})`);
+  const head = Buffer.alloc(2);
+  const fd = openSync(file, "r");
+  readSync(fd, head, 0, 2, 0);
+  closeSync(fd);
+  const want = win ? "504b" : "1f8b";
+  if (head.toString("hex") !== want) throw new Error(`${file} is not a ${win ? "zip" : "gzip"} file`);
   return file;
 }
 

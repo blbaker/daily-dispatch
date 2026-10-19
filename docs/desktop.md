@@ -140,8 +140,10 @@ spinner before the edition arrives, and the result would depend on timing.
 
 - Linux x64: gate passes, `npm run desktop:demo` opens a window under Xvfb,
   and an extracted package runs from another directory.
-- Windows x64: `npm ci` and the gate pass natively on Windows, and an
-  extracted package renders headless. The windowed launcher was not opened.
+- Windows x64: `npm ci` and the gate pass natively on Windows, an extracted
+  package renders headless, and the packaged `Daily Dispatch.cmd` opened a
+  window that rendered. `npm ci`, the gate and `npm run package` also pass
+  from Git Bash, the shell the Windows CI job uses.
 - macOS arm64: `npm ci` and the gate pass on an M-series Mac over ssh, and the
   engine inside an extracted `Daily Dispatch.app` renders headless. The
   windowed app was not opened.
