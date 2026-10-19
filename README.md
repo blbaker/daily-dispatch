@@ -1,190 +1,200 @@
 # Daily Dispatch
 
-A personal news digest, end to end: you push links from your phone all day,
-Claude turns them into a daily digest and reads it into a two-host podcast,
-and you read or listen to the result in a small app built for your phone or
-an e-ink tablet.
+Daily Dispatch turns the links you send from your phone during the day into
+a daily news digest and a two-host podcast episode, and puts both in a small
+reading app styled after the old Yahoo News Digest. A Python pipeline
+captures the links and writes the digest, the `daily-dispatch` CLI writes
+and voices the podcast with the model and voice service you choose, an AWS
+backend syncs it all and sends push notifications, and the app runs on
+Android (phone and e-ink), iOS, the web, macOS, Linux and Windows.
 
-This repo has four pieces:
+Documentation: https://blbaker.github.io/daily-dispatch/ (goes live when the
+repository is public).
 
-- **`app/`** -- an Expo (React Native) app, phone and e-ink builds, styled
-  like the old Yahoo News Digest app.
-- **`backend/`** -- an AWS CDK stack (DynamoDB + a Lambda behind a Function
-  URL + an S3 bucket for app releases). Cheap enough to run for one person.
-- **`pipeline/`** -- the scripts that capture pushed links, turn them into
-  an HTML digest, and rebuild the app's data.
-- **`.claude/skills/`** -- two Claude Code skills (`daily-digest` and
-  `link-talk-podcast`) that do the actual writing.
+<p>
+  <img src="docs/assets/screenshots/phone-today.png" width="200" alt="Today tab on a phone: the lead story under a photo">
+  <img src="docs/assets/screenshots/phone-article.png" width="200" alt="Article reader with the quick take">
+  <img src="docs/assets/screenshots/phone-archive.png" width="200" alt="Archive tab listing past editions">
+  <img src="docs/assets/screenshots/eink-today.png" width="200" alt="Today tab in the grayscale e-ink build">
+  <img src="docs/assets/screenshots/desktop-windows.png" width="200" alt="Desktop app on Windows, rendered by Impeller">
+</p>
 
-None of it needs all of it. The pipeline and skills work with just a local
-link store and no backend at all; the app needs the backend if you want it
-to sync; the podcast step needs an ElevenLabs account.
+Left to right: Today, an article, and the archive on a phone, the e-ink
+build, and the desktop app on Windows. All of them show sample data.
 
-## How it fits together
+## Platforms
 
-1. **Listen** -- a small Python script watches your Pushbullet account and
-   appends every link you push to a local file.
-2. **Write** -- a Claude Code skill reads that file, fetches each link, and
-   writes a prose digest page plus rebuilds a little reading app from it.
-3. **Voice** -- a second skill turns the same links into a two-host podcast
-   script and sends it through ElevenLabs Text-to-Dialogue.
-4. **Read** -- the digest is a static HTML page you can open anywhere, or,
-   if you've deployed the backend, it's also in the Expo app on your phone
-   or e-ink tablet.
+- Android phone and Android e-ink tablets (a grayscale build of the same app)
+- iOS, as an unsigned simulator build; device builds need an Apple
+  developer account
+- Web, as a static export with Web Push
+- macOS on Apple silicon, Linux x64 and Windows x64, through
+  [react-native-impeller-platform](https://www.npmjs.com/package/react-native-impeller-platform)
 
-## Setting it up
+## Quick start
 
-### 1. Run the listener
+You need Git, Node.js 24, pnpm 10 or newer and Python 3.12 or newer. None of
+these commands need an account or an API key.
 
-The listener needs a Pushbullet account and an access token from
-[pushbullet.com/#settings/account](https://www.pushbullet.com/#settings/account).
+```sh
+git clone https://github.com/blbaker/daily-dispatch.git
+cd daily-dispatch
 
-```
-cd pipeline
-pip install websocket-client
-export PUSHBULLET_TOKEN=your_token_here
-python3 pushbullet_bridge.py
-```
-
-It backfills anything you pushed today, then listens for new pushes and
-appends each link to `~/.daily-dispatch/links.jsonl` (override the base
-directory with `DAILY_DISPATCH_HOME`). Leave it running -- as a systemd
-service, a `screen`/`tmux` session, or however you keep a long-running
-script alive on your machine. There's no systemd unit file in this repo on
-purpose: how you supervise a background process is specific to your OS and
-setup, not something this project should assume for you.
-
-### 2. Write the digest with Claude
-
-Install the skill, either by cloning this repo and running `claude` inside
-it (Claude Code picks up `.claude/skills/` automatically), or from anywhere
-with [skills.sh](https://skills.sh)'s installer:
-
-```
-npx skills add blbaker/daily-dispatch
-```
-
-Then, in a Claude Code session, ask it to run the `daily-digest` skill. For
-a test run that doesn't consume your link store:
-
-```
-DIGEST_PEEK=1 pipeline/digest_collect.sh
-```
-
-The skill reads that output, writes `/tmp/link_digest_YYYYMMDD.md`, renders
-it to HTML with `pipeline/md2digest.py`, and rebuilds the reading app with
-`pipeline/build_ynd_app.py`. Point a browser at
-`$DAILY_DISPATCH_HOME/web/index.html` (defaults to
-`~/.daily-dispatch/web/index.html`) to read it.
-
-Summaries are written by whatever `SUMMARIZE_CMD` points at -- it defaults
-to `claude -p`, so if you have the Claude Code CLI installed, this works
-with no extra setup. Point it at a different CLI (anything that takes a
-prompt as its last argument and prints the answer to stdout) if you'd
-rather use something else.
-
-Run this on a schedule (cron, a Hermes cron job, anything that can run a
-shell command daily) if you want a digest every day without asking for it.
-
-### 3. Voice it with ElevenLabs
-
-Get an API key from [elevenlabs.io](https://elevenlabs.io/app/settings/api-keys)
-and export it:
-
-```
-export ELEVENLABS_API_KEY=your_key_here
-```
-
-Copy `pipeline/voices.example.json` to your own `voices.json` and put in
-real voice IDs -- your own cloned voices, or picks from ElevenLabs' shared
-Voice Library. Ask Claude to run the `link-talk-podcast` skill, which writes
-a script and then:
-
-```
-# dry run first -- no API calls, no cost, just a transcript and a char count
-python3 pipeline/podcast_make.py --script-dir SCRIPT_DIR --voices voices.json \
-  --out out/episode.mp3 --transcript out/episode.md --dry-run
-
-# the real run
-python3 pipeline/podcast_make.py --script-dir SCRIPT_DIR --voices voices.json \
-  --out out/episode.mp3 --transcript out/episode.md
-```
-
-There's a tiny example script at `pipeline/examples/link-talk-script/` you
-can run the dry-run command against right away, with no setup, to see the
-format and the output.
-
-### 4. Read it in the app
-
-The app works standalone (no backend) if you just want to browse
-`web/index.html`. For the native app with sync:
-
-```
+# The desktop app against built-in sample editions
 cd app
-npm install --legacy-peer-deps
-cp .env.example .env   # fill in EXPO_PUBLIC_API_URL / EXPO_PUBLIC_API_KEY once you've deployed the backend
-npm run web              # browser preview
-npm run android          # on a connected device or emulator
-```
+npm run desktop:install
+npm run desktop:demo
+cd ..
 
-Set `EXPO_PUBLIC_EINK=true` in `.env` for the e-ink (Boox-style) build: same
-code, a flattened grayscale theme.
-
-### Deploying the backend (optional)
-
-The backend is an AWS CDK stack: DynamoDB (pay-per-request), a Lambda
-behind a Function URL (no API Gateway charge), and an S3 bucket for
-self-hosted app updates. It's designed to cost close to nothing for one
-user.
-
-```
-cd backend
+# A podcast script from the example stories, with no paid call
 pnpm install
-pnpm exec cdk synth    # renders the template locally, no AWS account needed
+pnpm --filter daily-dispatch build
+node packages/daily-dispatch/dist/cli/bin.js podcast make \
+  --stories packages/daily-dispatch/examples/stories.example.json \
+  --writer anthropic --voice elevenlabs \
+  --voices packages/daily-dispatch/examples/voices.elevenlabs.example.json \
+  --out /tmp/episode
+
+# The pipeline's tests
+python3 -m unittest discover -s tests
 ```
 
-Deploying is a manual, maintainer-run step, never something CI does:
+To run the app in a browser or on a phone, see
+[docs/setup.md](docs/setup.md). To capture your own links and write a
+digest, see [docs/pipeline.md](docs/pipeline.md).
 
+## The podcast
+
+The `daily-dispatch` CLI in `packages/daily-dispatch/` makes an episode in
+two steps, and each step is an adapter you pick by name. A script writer
+turns the day's stories into a two-host script. A voice provider reads it,
+and ffmpeg joins the audio into one MP3 with a Markdown transcript. Adding a
+writer or a voice service is one file plus one line in a registry.
+
+Script writers:
+
+- `anthropic`: the Anthropic Messages API, needs `ANTHROPIC_API_KEY`
+- `openai`: the OpenAI Chat Completions API, needs `OPENAI_API_KEY`
+- `ollama`: a local Ollama model, free
+- `command`: any CLI that reads a prompt, `claude -p` by default
+
+Voice providers:
+
+- `elevenlabs`: ElevenLabs Text-to-Dialogue, needs `ELEVENLABS_API_KEY`
+- `openai`: OpenAI text to speech, needs `OPENAI_API_KEY`
+- `google`: Gemini multi-speaker TTS, needs `GEMINI_API_KEY`
+- `polly`: Amazon Polly, needs AWS credentials and a region
+- `azure`: Azure AI Speech, needs `AZURE_SPEECH_KEY` and a region
+- `local`: any OpenAI-compatible TTS server such as Kokoro, free
+
+Paid providers never run without `--confirm`. Without it the CLI prints the
+character count and an estimated cost and sends nothing.
+[docs/podcast-providers.md](docs/podcast-providers.md) has every option and
+the voice map format, and [docs/daily-podcast.md](docs/daily-podcast.md#costs)
+has the prices.
+
+The older Python path, `pipeline/podcast_make.py` with the
+`link-talk-podcast` skill, still works and uses ElevenLabs only.
+
+## Daily episode (optional)
+
+The CLI can make an episode at the same time every day. It is off until you
+turn it on.
+
+```sh
+daily-dispatch podcast run --dry-run        # what today's run would cost
+daily-dispatch schedule install --print     # shows the job, changes nothing
+daily-dispatch schedule install             # systemd, cron, launchd or Task Scheduler
 ```
-export CDK_DEFAULT_ACCOUNT=your_account_id
-export CDK_DEFAULT_REGION=us-west-2
-pnpm exec cdk deploy -c apiKey="$(openssl rand -hex 32)"
+
+The job runs `daily-dispatch podcast run --if-due` every 15 minutes. Each
+run reads the on/off switch, time and time zone from the backend's
+`/settings`, or from `~/.config/daily-dispatch/config.json` without a
+backend, so changing the time never means reinstalling the job. A GitHub
+Actions template covers people with no always-on machine. See
+[docs/daily-podcast.md](docs/daily-podcast.md).
+
+## Push notifications
+
+The backend sends a notification when a new edition is published and when a
+new episode is ready.
+
+- Android and iOS get them through the Expo push service, which needs an
+  Expo access token, a Firebase FCM v1 key and an APNs key.
+- The web app gets them through Web Push, which needs a VAPID key pair.
+- The desktop app polls `GET /notifications/since` every 5 minutes and needs
+  no credentials.
+
+The backend reads the credentials from SSM, and a provider whose credentials
+are missing stays off without breaking anything else.
+[docs/push-setup.md](docs/push-setup.md) walks through creating each one, and
+[docs/push-clients.md](docs/push-clients.md) covers the app side.
+
+## Desktop
+
+The desktop app is the same React Native code as the phone app, rendered by
+the Impeller engine. There is no Electron and no web view.
+
+```sh
+cd app
+npm run desktop:install
+npm run desktop                    # against your backend, from app/.env
+cd desktop && npm run package      # a package for this OS in app/desktop/dist/
 ```
 
-Keep the API key you generated (the stack does not print it) -- that's
-`EXPO_PUBLIC_API_KEY` in the app and `DIGEST_API_KEY` for the pipeline.
-The stack also prints the Function URL, which is `EXPO_PUBLIC_API_URL` /
-`DIGEST_API_URL`.
+[docs/desktop.md](docs/desktop.md) lists the system requirements and how
+the packages are put together.
 
-Publishing in-app updates (building and uploading new APKs) is
-`scripts/release.sh`, also a manual script -- see its header comment for
-what it expects in your environment.
+## Self-hosting the backend
 
-## Environment variables
+The backend in `backend/` is one AWS CDK stack: a DynamoDB table billed per
+request, a Lambda function behind a Function URL, two private S3 buckets for
+app releases and episode audio, and an hourly push receipt check. It is
+built for a single reader with one API key.
 
-Everything that used to be hardcoded to one machine is now an environment
-variable. The full list, with comments, lives in:
+```sh
+cd backend
+pnpm install --frozen-lockfile --ignore-workspace
+pnpm exec cdk synth --quiet                              # no AWS account needed
+pnpm exec cdk deploy -c apiKey="$(cat path/to/api-key)"  # your account, by hand
+```
 
-- `.env.pipeline.example` -- the listener, digest, and podcast scripts
-- `app/.env.example` -- the app
-- `backend/.env.example` -- the CDK deploy
+[docs/backend.md](docs/backend.md) covers the deploy, the outputs, the
+variables each client reads, and the API.
 
-Nothing in this repo needs all of them. The pipeline runs with just
-`PUSHBULLET_TOKEN` set; everything else has a sensible default or is
-optional.
+## Status
+
+This is a working personal tool on its way to being a public project. Some
+parts have only been checked with mocks or on some platforms:
+
+- No paid API has been called by the new CLI. The Anthropic, OpenAI,
+  ElevenLabs, Gemini, Polly and Azure adapters are tested against faked
+  responses built from each service's documentation. A full episode has been
+  made end to end with a local Ollama model and a local TTS server.
+- The npm package is not published yet. The GitHub Actions podcast template
+  refers to a version that is not on npm.
+- The systemd timer was checked with `systemd-analyze`. The launchd plist and
+  the Task Scheduler task have not been loaded by a real scheduler.
+- Push delivery through FCM, APNs or a browser push service has not been
+  tried, because it needs real credentials. The push routes in the backend
+  have not been deployed.
+- The Settings screen is designed but not in the app yet. Until it is, change
+  settings with `PUT /settings` or the local config file.
+- Desktop notifications fall back to an in-app strip until the engine's
+  notifications module is released. The macOS app has passed its headless
+  render check but has not been opened in a window.
+- The iOS app has only been built for the simulator, and the Android build
+  with push support has not been installed on a device.
+- The CI workflows and this documentation site have not run on GitHub yet.
 
 ## Contributing
 
-See `CONTRIBUTING.md` for the fork/branch/PR flow, the commit message
-convention this repo uses (it drives automatic versioning), and what CI
-checks. Short version: fork it, branch off `main`, open a PR with a
-Conventional Commits-style title, and the checks will tell you if something's
-broken before a maintainer looks at it.
-
-Please read `CODE_OF_CONDUCT.md` and `SECURITY.md` too -- the first covers
-how we expect people to treat each other here, the second is where to
-report anything that looks like a security issue rather than a regular bug.
+[CONTRIBUTING.md](CONTRIBUTING.md) covers setting up a clone, the checks for
+each part, commit messages (Release Please reads them), and the pull request
+flow. Coding agents should read [AGENTS.md](AGENTS.md). Please also read the
+[code of conduct](CODE_OF_CONDUCT.md), and report security problems as
+[SECURITY.md](SECURITY.md) describes.
 
 ## License
 
-MIT. See `LICENSE`.
+MIT. See [LICENSE](LICENSE).
