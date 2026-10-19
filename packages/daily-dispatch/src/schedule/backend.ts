@@ -16,23 +16,22 @@ export function backendFrom(env: Env): Backend | undefined {
   return url && key ? { url: url.replace(/\/+$/, ''), key } : undefined;
 }
 
-/**
- * GET a backend path with the API key. Returns null on 404, which callers
- * treat as "not there yet". No retries here: the scheduler polls again in a
- * few minutes anyway.
- */
-export async function backendGet(b: Backend, pathname: string, fetchImpl: typeof fetch): Promise<unknown> {
+async function send(b: Backend, pathname: string, fetchImpl: typeof fetch, json?: unknown): Promise<Response> {
   const url = `${b.url}${pathname}`;
-  let res: Response;
+  const headers: Record<string, string> = { 'x-api-key': b.key, accept: 'application/json' };
+  const init: RequestInit = { method: json === undefined ? 'GET' : 'POST', headers };
+  if (json !== undefined) {
+    headers['content-type'] = 'application/json';
+    init.body = JSON.stringify(json);
+  }
   try {
-    res = await fetchImpl(url, { method: 'GET', headers: { 'x-api-key': b.key, accept: 'application/json' } });
+    return await fetchImpl(url, init);
   } catch (e) {
     throw new DispatchError('network', `could not reach the backend at ${new URL(url).host}: ${(e as Error).message}`);
   }
-  if (res.status === 404) {
-    await res.body?.cancel();
-    return null;
-  }
+}
+
+async function readReply(res: Response, pathname: string): Promise<unknown> {
   const text = await res.text();
   if (res.status === 401 || res.status === 403) {
     throw new DispatchError('unauthorized', `the backend rejected the API key (HTTP ${res.status}). Check ${API_KEY_ENV}.`);
@@ -43,4 +42,23 @@ export async function backendGet(b: Backend, pathname: string, fetchImpl: typeof
   } catch {
     throw new DispatchError('bad-response', `backend: expected JSON from ${pathname}, got: ${text.slice(0, 120)}`);
   }
+}
+
+/**
+ * GET a backend path with the API key. Returns null on 404, which callers
+ * treat as "not there yet". No retries here: the scheduler polls again in a
+ * few minutes anyway.
+ */
+export async function backendGet(b: Backend, pathname: string, fetchImpl: typeof fetch): Promise<unknown> {
+  const res = await send(b, pathname, fetchImpl);
+  if (res.status === 404) {
+    await res.body?.cancel();
+    return null;
+  }
+  return readReply(res, pathname);
+}
+
+/** POST JSON to a backend path with the API key. A 404 here is an error: the backend predates the route. */
+export async function backendPost(b: Backend, pathname: string, body: unknown, fetchImpl: typeof fetch): Promise<unknown> {
+  return readReply(await send(b, pathname, fetchImpl, body), pathname);
 }

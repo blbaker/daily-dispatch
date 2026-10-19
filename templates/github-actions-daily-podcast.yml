@@ -10,7 +10,8 @@
 # zone, writer, voice) comes from the backend's /settings when
 # DAILY_DISPATCH_API_URL is set, so changing the time in the app needs no edit
 # here. The state file that remembers finished dates is kept in the Actions
-# cache between runs. Each new episode is uploaded as a workflow artifact.
+# cache between runs. Each new episode is uploaded as a workflow artifact and,
+# when DAILY_DISPATCH_API_URL is set, published to the backend for the app.
 # Only the state file is cached, so a run that fails partway starts the
 # script over on the next try instead of reusing it as a local job would.
 #

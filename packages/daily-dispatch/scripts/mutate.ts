@@ -70,6 +70,18 @@ const MUTANTS: Mutant[] = [
   { id: 'M44', file: 'src/cli/schedule.ts', from: "  if (flags.print) {", to: "  if (false) {", test: 'test/schedule-cli.test.ts', expect: /--print shows every file and command and changes nothing/ },
   { id: 'M45', file: 'src/schedule/install.ts', from: "return (await io.exists('/run/systemd/system')) ? 'systemd' : 'cron';", to: "return 'cron';", test: 'test/schedule-cli.test.ts', expect: /detectKind/ },
   { id: 'M46', file: 'src/schedule/install.ts', from: "Buffer.from([0xff, 0xfe])", to: "Buffer.from([])", test: 'test/schedule-cli.test.ts', expect: /UTF-16 task XML/ },
+  { id: 'M47', file: 'src/schedule/upload.ts', from: "headers: target.headers, body: audio", to: "headers: { ...target.headers, 'x-api-key': b.key }, body: audio", test: 'test/episode-upload.test.ts', expect: /a new episode is posted, PUT to the presigned URL/ },
+  { id: 'M48', file: 'src/schedule/run.ts', from: "...(backendFrom(o.env) !== undefined ? { upload: { status: 'pending', attempts: 0 } } : {}),", to: "", test: 'test/episode-upload.test.ts', expect: /a new episode is posted, PUT to the presigned URL/ },
+  { id: 'M49', file: 'src/schedule/run.ts', from: "backendFrom(o.env) !== undefined ? { upload:", to: "true ? { upload:", test: 'test/episode-upload.test.ts', expect: /nothing is uploaded/ },
+  { id: 'M50', file: 'src/schedule/publish.ts', from: "day.upload = { status: 'pending', attempts, at, error };", to: "day.upload = { status: 'done', attempts, at, error };", test: 'test/episode-upload.test.ts', expect: /a failed PUT exits 1/ },
+  { id: 'M51', file: 'src/schedule/publish.ts', from: "s.days[d]?.upload?.status === 'pending'", to: "s.days[d]?.upload !== undefined", test: 'test/episode-upload.test.ts', expect: /later runs and a manual run upload nothing/ },
+  { id: 'M52', file: 'src/schedule/publish.ts', from: "s.days[d]?.upload?.status === 'pending'", to: "s.days[d]?.upload?.status !== 'done'", test: 'test/episode-upload.test.ts', expect: /file that is gone gives up once/ },
+  { id: 'M53', file: 'src/schedule/publish.ts', from: "if (await missing(day.episode)) {", to: "if (false) {", test: 'test/episode-upload.test.ts', expect: /file that is gone gives up once/ },
+  { id: 'M54', file: 'src/schedule/upload.ts', from: "if (!res.ok) {", to: "if (false) {", test: 'test/episode-upload.test.ts', expect: /a failed PUT exits 1/ },
+  { id: 'M55', file: 'src/schedule/publish.ts', from: "if (o.dryRun) {", to: "if (false) {", test: 'test/episode-upload.test.ts', expect: /a dry run, or a run while another holds the lock/ },
+  { id: 'M56', file: 'src/schedule/publish.ts', from: "if (release === null) {", to: "if (false) {", test: 'test/episode-upload.test.ts', expect: /a dry run, or a run while another holds the lock/ },
+  { id: 'M57', file: 'src/schedule/upload.ts', from: "if (typeof u?.url !== 'string' || !/^https?:\\/\\//.test(u.url)) {", to: "if (false) {", test: 'test/episode-upload.test.ts', expect: /a backend refusal is explained/ },
+  { id: 'M58', file: 'src/schedule/run.ts', from: "{ durationSec: Math.round(result.durationSec) }", to: "{}", test: 'test/episode-upload.test.ts', expect: /a new episode is posted, PUT to the presigned URL/ },
 ];
 
 const root = path.resolve(import.meta.dirname, '..');

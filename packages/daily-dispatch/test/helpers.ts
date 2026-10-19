@@ -9,6 +9,8 @@ export interface RecordedCall {
   method: string;
   headers: Record<string, string>;
   body: string | undefined;
+  /** A binary body (an audio upload), copied as a plain Uint8Array. */
+  bytes?: Uint8Array;
   json: unknown;
 }
 
@@ -33,7 +35,9 @@ export function fakeFetch(...replies: Array<Response | Error>) {
     } catch {
       json = undefined;
     }
-    calls.push({ url: String(input), method: init.method ?? 'GET', headers, body, json });
+    const call: RecordedCall = { url: String(input), method: init.method ?? 'GET', headers, body, json };
+    if (init.body instanceof Uint8Array) call.bytes = new Uint8Array(init.body);
+    calls.push(call);
     const next = queue.shift();
     if (next === undefined) throw new Error(`fakeFetch: unexpected request #${calls.length} to ${String(input)}`);
     if (next instanceof Error) throw next;

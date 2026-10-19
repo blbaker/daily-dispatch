@@ -89,11 +89,17 @@ test('podcast run --if-due: no digest for the date yet means wait, without using
 test('podcast run --if-due: settings and stories come from the backend when it is configured', async () => {
   const settings = { podcast: { enabled: true, time: '05:00', timezone: 'UTC', voiceProvider: 'local', scriptWriter: 'command', hostVoices: { Bella: 'af_bella', Adam: 'am_adam' } } };
   const env = { DAILY_DISPATCH_API_URL: 'https://api.example.test', DAILY_DISPATCH_API_KEY: 'k' };
-  const t = await setup({ config: { stories: undefined }, env, now: '2026-10-19T05:10:00Z', replies: [reply(200, settings), reply(200, { id: '2026-10-19', inProgress: false, stories: REQ.stories }), reply(200, MP3), reply(200, MP3)] });
+  const upload = [reply(200, { upload: { url: 'https://media.example.test/e.mp3', method: 'PUT', headers: {} } }), reply(200, ''), reply(200, { ok: true })];
+  const t = await setup({ config: { stories: undefined }, env, now: '2026-10-19T05:10:00Z', replies: [reply(200, settings), reply(200, { id: '2026-10-19', inProgress: false, stories: REQ.stories }), reply(200, MP3), reply(200, MP3), ...upload] });
+  // The fake ffmpeg writes nothing, so put the finished episode where the upload will read it.
+  const episode = path.join(t.home, '.local', 'share', 'daily-dispatch', 'episodes', '2026-10-19', 'episode.mp3');
+  await fs.mkdir(path.dirname(episode), { recursive: true });
+  await fs.writeFile(episode, MP3);
   assert.equal(await t.go(), 0, t.errors());
   assert.deepEqual(t.f.calls.slice(0, 2).map((c) => c.url), ['https://api.example.test/settings', 'https://api.example.test/editions/2026-10-19']);
   assert.equal(t.f.calls[1]?.headers['x-api-key'], 'k');
   assert.equal((await t.readState()).days['2026-10-19']?.status, 'done');
+  assert.equal(t.f.calls.length, 7, 'the backend run also publishes the episode');
 });
 
 test('podcast run --if-due: an edition still in progress, or missing, means wait', async () => {

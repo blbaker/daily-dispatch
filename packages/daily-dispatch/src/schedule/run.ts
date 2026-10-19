@@ -6,8 +6,10 @@ import { makePodcast } from '../podcast.ts';
 import { parseScript } from '../script/parse.ts';
 import { getVoiceProvider } from '../voices/registry.ts';
 import { getWriter } from '../writers/registry.ts';
+import { backendFrom } from './backend.ts';
 import { decide, localTime } from './clock.ts';
 import { resolveSettings } from './config.ts';
+import { publishPending } from './publish.ts';
 import { acquireLock, readState, writeState } from './state.ts';
 import { loadDayStories } from './stories-source.ts';
 import type { spawn } from 'node:child_process';
@@ -63,7 +65,20 @@ async function previousScript(file: string, tags: string[], title: string, log: 
   }
 }
 
+/**
+ * Make the episode if it is due, then publish any episode still waiting for
+ * its upload. Publishing is a separate pass so a failed upload is retried on
+ * the next poll without making the episode again.
+ */
 export async function runPodcast(o: RunOptions): Promise<RunOutcome> {
+  const outcome = await makeEpisode(o);
+  await publishPending({ env: o.env, statePath: o.statePath, show: showTitle(o), dryRun: o.dryRun, fetchImpl: o.fetchImpl, now: o.now, log: o.log });
+  return outcome;
+}
+
+const showTitle = (o: RunOptions): string => o.config.title ?? 'Link Talk';
+
+async function makeEpisode(o: RunOptions): Promise<RunOutcome> {
   const s = await resolveSettings({ env: o.env, config: o.config, fetchImpl: o.fetchImpl, configPath: o.configPath });
   const state = await readState(o.statePath);
   const where = `daily podcast at ${s.time} ${s.timezone}, settings from the ${s.source}`;
@@ -115,7 +130,7 @@ export async function runPodcast(o: RunOptions): Promise<RunOutcome> {
       return { status: 'waiting', detail: day.waiting };
     }
     const outDir = path.join(o.outDir, date);
-    const title = o.config.title ?? 'Link Talk';
+    const title = showTitle(o);
     const script = o.force ? undefined : await previousScript(path.join(outDir, 'script.txt'), Object.keys(s.voices), title, o.log);
     o.log(`making the ${date} episode with ${s.writer} and ${s.voice}`);
     try {
@@ -135,7 +150,15 @@ export async function runPodcast(o: RunOptions): Promise<RunOutcome> {
         ...(script !== undefined ? { script } : {}),
       });
       if (result.dryRun || result.files.episode === undefined) return { status: 'dry-run', date };
-      state.days[date] = { status: 'done', attempts: (state.days[date]?.attempts ?? 0) + 1, at: o.now.toISOString(), episode: result.files.episode };
+      state.days[date] = {
+        status: 'done',
+        attempts: (state.days[date]?.attempts ?? 0) + 1,
+        at: o.now.toISOString(),
+        episode: result.files.episode,
+        ...(result.durationSec !== undefined && result.durationSec > 0 ? { durationSec: Math.round(result.durationSec) } : {}),
+        // Recorded before the upload starts, so a crash mid-upload still leaves it to retry.
+        ...(backendFrom(o.env) !== undefined ? { upload: { status: 'pending', attempts: 0 } } : {}),
+      };
       await writeState(o.statePath, state);
       o.log(`episode ready: ${result.files.episode}`);
       return { status: 'done', date, episode: result.files.episode };

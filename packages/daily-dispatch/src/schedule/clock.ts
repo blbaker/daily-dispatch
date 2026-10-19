@@ -6,6 +6,23 @@ export interface DayRecord {
   attempts: number;
   at?: string;
   episode?: string;
+  /** Length of the finished episode, when ffprobe could read it. */
+  durationSec?: number;
+  error?: string;
+  /** Only present when the episode was made with the backend configured. */
+  upload?: UploadRecord;
+}
+
+/**
+ * Publishing a made episode to the backend. Kept apart from the day's own
+ * status: a failed upload must not cost a writer or voice attempt, because
+ * the audio already exists.
+ */
+export interface UploadRecord {
+  /** gave-up: the audio file is gone, so retrying cannot work. */
+  status: 'pending' | 'done' | 'gave-up';
+  attempts: number;
+  at?: string;
   error?: string;
 }
 
