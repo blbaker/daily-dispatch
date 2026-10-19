@@ -13,6 +13,8 @@ export interface VoiceCapabilities {
   supportedTags: 'all' | readonly string[];
   /** Estimated US dollars per character sent. 0 for free or local engines. */
   costPerChar: number;
+  /** Turns allowed in one request, when the provider caps them (Azure: 50 voice elements). */
+  maxTurnsPerRequest?: number;
 }
 
 export interface SynthesisRequest {
@@ -44,6 +46,8 @@ export interface VoiceProvider {
   synthesize(req: SynthesisRequest, signal?: AbortSignal): Promise<SynthesisResult>;
   /** Fail before spending anything if the account cannot cover `chars`. */
   preflight?(chars: number): Promise<void>;
+  /** Throw when settings beyond the key (region, secret) are missing. Runs before the writer. */
+  checkConfig?(): void;
 }
 
 export type VoiceFactory = (ctx: ProviderContext) => VoiceProvider;

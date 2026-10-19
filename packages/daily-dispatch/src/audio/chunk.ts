@@ -58,7 +58,8 @@ export function planChunks(script: Script, caps: VoiceCapabilities): Chunk[] {
         );
       }
       const newVoice = !voices.has(turn.speaker);
-      const full = chars + turn.text.length > max || (newVoice && voices.size >= maxVoices);
+      const full =
+        chars + turn.text.length > max || (newVoice && voices.size >= maxVoices) || turns.length >= (caps.maxTurnsPerRequest ?? Infinity);
       if (!caps.multiSpeaker || full) flush();
       turns.push(turn);
       chars += turn.text.length;

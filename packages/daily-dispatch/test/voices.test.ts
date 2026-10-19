@@ -120,7 +120,7 @@ test('openai: custom voice ids go as an object, and audio tags are not supported
 });
 
 test('registry: resolves voice providers by name and lists them on a typo', () => {
-  assert.deepEqual(Object.keys(VOICES).sort(), ['elevenlabs', 'openai']);
-  assert.equal(getVoiceProvider('openai', ctx(forbiddenFetch().fetch)).name, 'openai');
-  assert.throws(() => getVoiceProvider('eleven', ctx(forbiddenFetch().fetch)), (e) => isDispatchError(e, 'unknown-provider') && /elevenlabs, openai/.test(e.message));
+  assert.deepEqual(Object.keys(VOICES).sort(), ['azure', 'elevenlabs', 'google', 'local', 'openai', 'polly']);
+  for (const name of Object.keys(VOICES)) assert.equal(getVoiceProvider(name, ctx(forbiddenFetch().fetch)).name, name);
+  assert.throws(() => getVoiceProvider('eleven', ctx(forbiddenFetch().fetch)), (e) => isDispatchError(e, 'unknown-provider') && /azure, elevenlabs, google, local, openai, polly/.test(e.message));
 });

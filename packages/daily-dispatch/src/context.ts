@@ -16,4 +16,6 @@ export interface ProviderContext {
   model?: string;
   /** The command writer's command line, e.g. "claude -p". */
   command?: string;
+  /** Clock for request signing (Polly). Defaults to the real time. */
+  now?: () => Date;
 }
