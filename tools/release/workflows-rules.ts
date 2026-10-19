@@ -20,12 +20,17 @@ export const GATES_WORKFLOW = 'package.yml';
 /** `npm stage publish` needs npm 11.15.0 or newer. */
 export const MIN_NPM: readonly [number, number, number] = [11, 15, 0];
 
+/**
+ * Commands that cannot be taken back: registry writes and infrastructure
+ * changes, plus the two git pushes that rewrite or publish refs. Attaching
+ * build artifacts to a GitHub Release is not on the list: a release can be
+ * edited or deleted, and release-artifacts.yml validates its own tag.
+ */
 const IRREVERSIBLE: [RegExp, string][] = [
   [/npm\s+publish/, 'npm publish'],
   [/npm\s+stage\s+publish/, 'npm stage publish'],
   [/npm\s+(stage\s+approve|trust|deprecate|unpublish|dist-tag)/, 'npm registry change'],
-  [/gh\s+release\s+create/, 'gh release create'],
-  [/git\s+push/, 'git push'],
+  [/git\s+push[^\n]*(--force|\s-f\b|--tags|--mirror)/, 'git push (force, tags or mirror)'],
   [/cdk\s+deploy/, 'cdk deploy'],
   [/terraform\s+apply/, 'terraform apply'],
   [/aws\s+s3\s+sync[^\n]*--delete/, 'aws s3 sync --delete'],
