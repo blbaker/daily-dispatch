@@ -66,7 +66,9 @@ git checkout -- package.json
 ```
 
 Replace `STAGE_ID` with the ID that `npm stage list` prints for
-`0.0.0-bootstrap.0`. Don't approve it.
+`0.0.0-bootstrap.0`. Don't approve it. Afterwards,
+`npm view daily-dispatch versions` may list `0.0.0-stage`: npm adds that
+placeholder itself when it creates a name for staging.
 
 ### 2. Add the trusted publisher
 
