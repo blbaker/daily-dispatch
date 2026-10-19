@@ -5,6 +5,7 @@ name: Build
 #   - iOS app for the simulator, unsigned
 #   - the static web export
 #   - desktop packages for Linux, macOS and Windows on the Impeller engine
+# Each job also uploads THIRD_PARTY_NOTICES-<target>.txt for what it built.
 # release-artifacts.yml calls this workflow for a version tag and attaches
 # the same files to the GitHub Release.
 #
@@ -118,6 +119,8 @@ jobs:
       - run: npm ci --legacy-peer-deps
       - name: Generate the native Android project
         run: npx expo prebuild --platform android --no-install
+      - name: Third-party notices
+        run: node ../scripts/ci/generate-notices.mts --target android --out dist-android
       - name: Build and check the APKs
         env:
           ANDROID_KEYSTORE_FILE: ${{ steps.signing.outputs.keystore }}
@@ -128,7 +131,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-android
-          path: app/dist-android/*.apk
+          path: app/dist-android/* # both APKs and THIRD_PARTY_NOTICES-android.txt
           if-no-files-found: error
           compression-level: 0
           retention-days: ${{ inputs.retention-days || 7 }}
@@ -158,6 +161,8 @@ jobs:
           xcodebuild -version
           pod --version
           npx expo prebuild --platform ios
+      - name: Third-party notices
+        run: node ../scripts/ci/generate-notices.mts --target ios --out dist-ios
       # A simulator build needs no signing identity, so this runs without an
       # Apple account. Device builds need one and are not made here.
       - name: Build for the simulator
@@ -182,7 +187,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-ios
-          path: app/dist-ios/daily-dispatch-ios-simulator.tar.gz
+          path: app/dist-ios/* # the app archive and THIRD_PARTY_NOTICES-ios.txt
           if-no-files-found: error
           compression-level: 0
           retention-days: ${{ inputs.retention-days || 7 }}
@@ -207,6 +212,8 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
       - run: npm ci --legacy-peer-deps
+      - name: Third-party notices
+        run: node ../scripts/ci/generate-notices.mts --target web --out dist-web
       - run: npx expo export --platform web --output-dir dist-web/daily-dispatch-web
       - name: Check and archive the export
         run: |
@@ -219,7 +226,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-web
-          path: app/dist-web/daily-dispatch-web.tar.gz
+          path: app/dist-web/*-web.* # the export archive and THIRD_PARTY_NOTICES-web.txt
           if-no-files-found: error
           compression-level: 0
           retention-days: ${{ inputs.retention-days || 7 }}
@@ -266,6 +273,8 @@ jobs:
       # npm installs the engine package for this OS and CPU from the
       # optionalDependencies of react-native-impeller-platform.
       - run: npm ci
+      - name: Third-party notices
+        run: node ../../scripts/ci/generate-notices.mts --target ${{ matrix.target }} --out dist
       - name: Typecheck the desktop app and the CI scripts
         if: runner.os == 'Linux'
         run: |
@@ -278,7 +287,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-desktop-${{ matrix.target }}
-          path: app/desktop/dist/daily-dispatch-${{ matrix.target }}.*
+          path: app/desktop/dist/*-${{ matrix.target }}.* # the package archive and its notices file
           if-no-files-found: error
           compression-level: 0
           retention-days: ${{ inputs.retention-days || 7 }}

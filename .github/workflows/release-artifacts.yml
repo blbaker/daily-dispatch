@@ -2,7 +2,9 @@ name: Release artifacts
 
 # Builds every app target for a version tag (through build.yml) and attaches
 # the files to that tag's GitHub Release, creating the release if it does not
-# exist yet. Nothing is submitted to a store and nothing is deployed.
+# exist yet. Each build comes with its THIRD_PARTY_NOTICES-<target>.txt, which
+# is attached next to it. Nothing is submitted to a store and nothing is
+# deployed.
 #
 # A tag that another workflow pushes with the default GITHUB_TOKEN does not
 # start this one; GitHub blocks that to prevent loops. For such a tag, run it
@@ -80,7 +82,8 @@ jobs:
           pattern: release-*
           path: release-assets
           merge-multiple: true
-      # Fails unless every platform is present exactly once; writes SHA256SUMS.txt.
+      # Fails unless every platform and its notices file are present exactly
+      # once; writes SHA256SUMS.txt.
       - run: node scripts/ci/release-assets.mts release-assets
       - run: sha256sum -c SHA256SUMS.txt
         working-directory: release-assets

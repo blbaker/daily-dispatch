@@ -137,9 +137,12 @@ README documents them, and they stay.
 - Nothing is vendored. Dependencies come from npm and PyPI at install time,
   and the repo redistributes none of them, so it needs no
   `THIRD_PARTY_NOTICES` file today.
-- Released APKs do bundle third-party code (React Native, Expo and their
-  dependencies). The release artifact work should generate a notices file
-  for every binary it publishes.
+- Released builds do bundle third-party code (React Native, Expo, the
+  Impeller engine and their dependencies). Every file attached to a GitHub
+  Release now has a `THIRD_PARTY_NOTICES-<target>.txt` next to it, written
+  by `scripts/ci/generate-notices.mts`; see
+  [builds.md](builds.md#third-party-notices) for what it covers and its
+  known gaps.
 
 ## History findings and options
 
