@@ -120,5 +120,7 @@ export function npmCandidates(appDir: string, platform?: Platform): NpmResult {
     if (!text) candidate.note = missingFileNote(manifest);
     candidates.push(candidate);
   }
+  // A check that examined nothing must not pass.
+  if (!candidates.length && !problems.length) problems.push(`npm: no production packages found in ${join(appDir, "package-lock.json")}`);
   return { candidates, problems };
 }

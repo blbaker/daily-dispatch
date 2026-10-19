@@ -161,3 +161,10 @@ test("the repository allowlist is valid and every text file it names exists", ()
     assert.ok(entries.some((e) => e.targets.includes(target) && e.textFiles?.includes("impeller-engine.txt")), `${target} engine note`);
   }
 });
+
+test("a lockfile with no production packages fails instead of writing an empty list", () => {
+  const f = fixture([{ name: "only-dev", dev: true, installed: false }]);
+  const r = run(f, "web");
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /^FAIL npm: no production packages found in .*package-lock\.json$/m);
+});

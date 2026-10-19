@@ -124,6 +124,15 @@ ${ack("SocketRocket", "Copyright &lt;c&gt; 2016-present, Facebook &amp; Co.", "B
 </array><key>Title</key><string>Acknowledgements</string></dict></plist>
 `;
 
+test("an empty Gradle report fails instead of writing an Android file with no Maven section", () => {
+  const f = fixture([{ name: "x", license: "MIT", files: { LICENSE: MIT_TEXT } }]);
+  const report = join(f.root, "empty.tsv");
+  writeFileSync(report, "");
+  const r = run(f, "android", ["--gradle-poms", report]);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /^FAIL maven: the Gradle report lists no modules$/m);
+});
+
 test("ios with no pod install output says where it looked", () => {
   const f = fixture([]);
   const r = run(f, "ios");
@@ -145,7 +154,7 @@ test("acknowledgements plist: title, license type and decoded text per pod", () 
 });
 
 test("ios: pods built from npm packages are listed as part of them; a pod with no acknowledgement fails", () => {
-  const f = fixture([], [{ source: "cocoapods", name: "Mystery", version: "1.0", targets: ["ios"], reason: "Test pod." }]);
+  const f = fixture([{ name: "expo-constants", license: "MIT", files: { LICENSE: MIT_TEXT } }], [{ source: "cocoapods", name: "Mystery", version: "1.0", targets: ["ios"], reason: "Test pod." }]);
   writeFileSync(join(f.root, "Podfile.lock"), PODFILE_LOCK);
   writeFileSync(join(f.root, "acks.plist"), PLIST);
   const args = ["--podfile-lock", join(f.root, "Podfile.lock"), "--pods-acknowledgements", join(f.root, "acks.plist")];

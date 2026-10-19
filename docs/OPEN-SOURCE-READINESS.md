@@ -143,6 +143,11 @@ README documents them, and they stay.
   by `scripts/ci/generate-notices.mts`; see
   [builds.md](builds.md#third-party-notices) for what it covers and its
   known gaps.
+- Upstream gap: `react-native-impeller-platform` and its engine packages
+  ship no license files, and that project's notices give license names
+  without texts and leave out some components the engine compiles in. The
+  desktop notices fill in what its repository provides; the rest needs a
+  fix in that project.
 
 ## History findings and options
 

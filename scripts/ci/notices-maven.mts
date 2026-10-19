@@ -67,6 +67,7 @@ export function mavenCandidates(reportFile: string): NativeResult {
   const rows = readReport(reportFile);
   const pomOf = new Map(rows.map((r) => [r.coord, r.pom]));
   const result: NativeResult = { candidates: [], covered: [], problems: [] };
+  if (!rows.some((r) => r.role === "module")) result.problems.push("maven: the Gradle report lists no modules");
   for (const row of rows.filter((r) => r.role === "module")) {
     const [group, artifact, version] = row.coord.split(":");
     const name = `${group}:${artifact}`;
