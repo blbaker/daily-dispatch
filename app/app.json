@@ -5,7 +5,7 @@
     "version": "1.0.209",
     "orientation": "portrait",
     "scheme": "dailydispatch",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "assetBundlePatterns": [
       "**/*"
@@ -17,7 +17,8 @@
         "INTERNET",
         "ACCESS_NETWORK_STATE",
         "REQUEST_INSTALL_PACKAGES"
-      ]
+      ],
+      "userInterfaceStyle": "automatic"
     },
     "web": {
       "bundler": "metro",
@@ -27,7 +28,8 @@
       "eink": false
     },
     "ios": {
-      "bundleIdentifier": "com.baker.dailydispatch"
+      "bundleIdentifier": "com.baker.dailydispatch",
+      "userInterfaceStyle": "automatic"
     }
   }
 }

@@ -80,14 +80,18 @@ export function timeZones(device: string | undefined, current: string): string[]
 
 /** "today, Mon Oct 19" or "tomorrow, Tue Oct 20", reckoned in `timeZone`. "" for a bad zone. */
 export function nextEpisode(nowMs: number, time: string, timeZone: string): string {
-  let parts: Intl.DateTimeFormatPart[];
   try {
-    parts = new Intl.DateTimeFormat("en-US", {
-      timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
-    }).formatToParts(new Date(nowMs));
+    return nextIn(nowMs, time, timeZone);
   } catch {
+    // A bad zone, or an engine without Intl time zone support.
     return "";
   }
+}
+
+function nextIn(nowMs: number, time: string, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).formatToParts(new Date(nowMs));
   const get = (t: string) => Number(parts.find((p) => p.type === t)?.value);
   const nowHm = `${String(get("hour")).padStart(2, "0")}:${String(get("minute")).padStart(2, "0")}`;
   const today = nowHm < time;

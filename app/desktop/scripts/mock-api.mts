@@ -60,6 +60,8 @@ export function startMockApi(port = 0, host = "127.0.0.1"): Promise<MockApi> {
     };
     const img = /^\/img\/([\w-]+)\.png$/.exec(path);
     if (img) return send(200, "image/png", gradientPng(img[1]));
+    // Like the real backend, /health needs no key (Settings > Server tests it).
+    if (path === "/health") return send(200, "application/json", '{"ok":true}');
     if (req.headers["x-api-key"] !== MOCK_API_KEY) return send(401, "application/json", '{"error":"bad key"}');
     const editions = loadEditions(base);
     if (path === "/editions") {

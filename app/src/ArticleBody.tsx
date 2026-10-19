@@ -3,7 +3,7 @@
 // "Read on the web" link out. Split out of App.tsx to keep files small.
 import React from "react";
 import { Image, Linking, Pressable, StyleSheet, Text, View } from "react-native";
-import { CAT_LABEL, space, radius, Theme, Cat } from "./theme";
+import { CAT_LABEL, space, radius, scaleText, Theme, Cat } from "./theme";
 import type { Story } from "./api";
 
 export function hostOf(url: string) {
@@ -29,7 +29,7 @@ function Paras({ text, style }: { text: string; style: any }) {
 export default function ArticleBody({ theme, st }: { theme: Theme; st: Story }) {
   const s = styles(theme);
   const c = theme.catColor[st.cat as Cat] || theme.accent;
-  const link = theme.eink ? "#000" : theme.accent;
+  const link = theme.accent;
   const overview = (st.overview || []).filter((o) => o.text);
   const linked = st.linked;
   return (
@@ -97,7 +97,7 @@ export default function ArticleBody({ theme, st }: { theme: Theme; st: Story }) 
 }
 
 function styles(t: Theme) {
-  return StyleSheet.create({
+  return StyleSheet.create(scaleText({
     hero: { width: "100%", height: 200, borderRadius: radius.sm, backgroundColor: t.divider, marginBottom: space.md },
     catRow: { flexDirection: "row", alignItems: "center", marginBottom: 5 },
     catDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
@@ -118,5 +118,5 @@ function styles(t: Theme) {
     linkedTitle: { fontSize: 19, fontWeight: "700", color: t.textLight, lineHeight: 25, marginBottom: 4 },
     web: { marginTop: space.md, paddingVertical: space.sm },
     webText: { fontSize: 14, fontWeight: "700" },
-  });
+  } as const, t.textScale));
 }

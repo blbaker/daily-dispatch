@@ -7,6 +7,8 @@
 //   today    no input; the slanted hero and the lead story must be on screen.
 //   archive  tap the Archive tab; the edition cards must replace Today.
 //   article  tap the lead story; the article reader must replace Today.
+//   settings tap the Settings tab; the Settings screen must replace Today
+//            and its Server section must have called /health.
 // Each frame must be non-blank and differ from the others, the app must have
 // fetched the edition from the mock API, and the AsyncStorage shim must have
 // written its offline cache to disk.
@@ -23,7 +25,9 @@ const WIDTH = 480;
 const HEIGHT = 900;
 const FRAMES = "60";
 const LATEST = "2026-10-18"; // newest edition in fixtures/sample-editions.json
-const TAP_ARCHIVE_TAB = "360,880";
+// Three tabs share the 480px window: Today 0-160, Archive 160-320, Settings 320-480.
+const TAP_ARCHIVE_TAB = "240,880";
+const TAP_SETTINGS_TAB = "400,880";
 const TAP_LEAD_STORY = "200,670";
 const WEDGE_PROBE = [440, 600] as const;
 
@@ -97,7 +101,10 @@ async function main(): Promise<number> {
 
   const archive = await scenario("archive", bundlePath, storage, ["--tap", TAP_ARCHIVE_TAB]);
   const article = await scenario("article", bundlePath, storage, ["--tap", TAP_LEAD_STORY]);
-  for (const [r, other] of [[archive, today], [article, today], [article, archive]] as const) {
+  const healthBefore = api.hits.filter((h) => h === "/health").length;
+  const settings = await scenario("settings", bundlePath, storage, ["--tap", TAP_SETTINGS_TAB]);
+  expect(settings, api.hits.filter((h) => h === "/health").length > healthBefore, "Settings never ran its connection test");
+  for (const [r, other] of [[archive, today], [article, today], [article, archive], [settings, today], [settings, archive]] as const) {
     const d = r.frame && other.frame ? diffFraction(r.frame, other.frame) : 0;
     r.notes.push(`diff_vs_${other.name}=${d.toFixed(3)}`);
     expect(r, d >= 0.25, `${r.name} looks like ${other.name}; the tap did not change the screen`);
@@ -110,7 +117,7 @@ async function main(): Promise<number> {
   const controlCaught = !control.ok;
   await api.close();
 
-  const results = [today, archive, article];
+  const results = [today, archive, article, settings];
   for (const r of results) console.log(`${r.ok ? "ok  " : "FAIL"} ${r.name}: ${r.notes.join(" ")}`);
   console.log(`${controlCaught ? "ok  " : "FAIL"} control (broken bundle must fail): ${control.notes.join(" ")}`);
   const pass = results.every((r) => r.ok) && controlCaught;

@@ -70,3 +70,11 @@ export interface SettingsApi {
   get(): Promise<RemoteSettings>;
   putPodcast(podcast: PodcastSettings): Promise<RemoteSettings>;
 }
+
+/** This build's version for Settings > About. */
+export interface BuildInfo {
+  version: string;
+  build: string;
+  /** "Phone build", "Boox e-ink build", ... */
+  kind: string;
+}

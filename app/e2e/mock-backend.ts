@@ -8,6 +8,11 @@ import { editionById, editionList } from "./fixtures.ts";
 
 export const MOCK_API_KEY = "local-test-key";
 
+/** The backend's podcast defaults (backend/lambda/settings.ts). */
+export const DEFAULT_PODCAST = {
+  enabled: false, time: "06:00", timezone: "UTC", voiceProvider: "elevenlabs", scriptWriter: "command", hostVoices: {},
+};
+
 export interface Recorded {
   method: string;
   path: string;
@@ -27,7 +32,7 @@ export interface MockNotification {
 export interface MockState {
   requests: Recorded[];
   devices: Map<string, Record<string, unknown>>;
-  settings: { notifications: Record<string, boolean>; updatedAt: string | null };
+  settings: { notifications: Record<string, boolean>; podcast: Record<string, unknown>; updatedAt: string | null };
   notifications: MockNotification[];
   vapidPublicKey: string | null;
   failAll: boolean;
@@ -110,8 +115,12 @@ async function route(state: MockState, method: string, url: URL, body: unknown):
   }
   if (method === "GET" && p === "/settings") return [200, state.settings];
   if (method === "PUT" && p === "/settings") {
-    const patch = (body as any)?.notifications ?? {};
-    state.settings = { notifications: { ...state.settings.notifications, ...patch }, updatedAt: new Date().toISOString() };
+    const b = (body ?? {}) as { notifications?: Record<string, boolean>; podcast?: Record<string, unknown> };
+    state.settings = {
+      notifications: { ...state.settings.notifications, ...b.notifications },
+      podcast: { ...state.settings.podcast, ...b.podcast },
+      updatedAt: new Date().toISOString(),
+    };
     return [200, state.settings];
   }
   if (method === "GET" && p === "/notifications/since") return since(state, url.searchParams);
@@ -125,7 +134,11 @@ export function startMockBackend(port = 0, vapidPublicKey: string | null = null)
   const state: MockState = {
     requests: [],
     devices: new Map(),
-    settings: { notifications: { enabled: true, newEdition: true, newEpisode: true }, updatedAt: null },
+    settings: {
+      notifications: { enabled: true, newEdition: true, newEpisode: true },
+      podcast: { ...DEFAULT_PODCAST },
+      updatedAt: null,
+    },
     notifications: [],
     vapidPublicKey,
     failAll: false,
@@ -143,6 +156,8 @@ export function startMockBackend(port = 0, vapidPublicKey: string | null = null)
     state.requests.push({ method: req.method ?? "GET", path: url.pathname + url.search, body });
     let reply: Reply;
     if (state.failAll) reply = [500, { error: "mock failure" }];
+    // Like the real backend, /health needs no key.
+    else if (req.method === "GET" && url.pathname === "/health") reply = [200, { ok: true }];
     else if (req.headers["x-api-key"] !== MOCK_API_KEY) reply = [403, { error: "bad api key" }];
     else reply = await route(state, req.method ?? "GET", url, body);
     res.writeHead(reply[0], { "content-type": "application/json" }).end(JSON.stringify(reply[1]));

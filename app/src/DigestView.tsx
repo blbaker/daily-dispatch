@@ -80,7 +80,7 @@ export default function DigestView({
   const lead = ed.stories[0];
   const hero = lead?.image || ed.hero || ed.stories.find((x) => x.image)?.image || "";
   const wash = theme.washes[0];
-  const onPhoto = theme.eink ? "#000" : "#fff";
+  const onPhoto = theme.eink ? theme.textLight : "#fff";
   const leadColor = lead ? theme.catColor[lead.cat as Cat] || theme.accent : theme.accent;
   // lead card's category row sits inside the white wedge (YND cover card)
   const leadLift = Math.round(slant * 0.2 + 11);
@@ -109,7 +109,7 @@ export default function DigestView({
         {hero && !theme.eink ? (
           <Image source={{ uri: hero }} style={StyleSheet.absoluteFill as any} resizeMode="cover" />
         ) : (
-          <View style={[StyleSheet.absoluteFill as any, { backgroundColor: theme.eink ? "#e8e8e8" : wash }]} />
+          <View style={[StyleSheet.absoluteFill as any, { backgroundColor: wash }]} />
         )}
         {!theme.eink && <View style={[StyleSheet.absoluteFill as any, { backgroundColor: "rgba(0,0,0,0.28)" }]} />}
         {/* page-colored wedge: bottom-left corner, full width, cuts the diagonal */}
@@ -128,7 +128,7 @@ export default function DigestView({
         )}
         <View style={{ paddingHorizontal: space.lg, paddingTop: topInset + (canBack ? 52 : space.lg) }}>
           <Text style={[s.heroDate, { color: onPhoto }]}>{ed.date}</Text>
-          <Text style={[s.heroSub, { color: theme.eink ? "#333" : "rgba(255,255,255,0.92)" }]}>
+          <Text style={[s.heroSub, { color: theme.eink ? theme.mutedDark : "rgba(255,255,255,0.92)" }]}>
             {ed.weekday.toLowerCase()} · {splitAt} {splitAt === 1 ? "story" : "stories"}
             {extra?.stories.length ? ` + ${extra.stories.length} new` : ""}
           </Text>
