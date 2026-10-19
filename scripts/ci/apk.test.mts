@@ -75,6 +75,17 @@ test("signerDns reads every signer from apksigner output", () => {
   assert.ok(!isDebugCertificate("CN=Example, OU=Android Debug, C=US"));
 });
 
+test("signerDns reads the apksigner 37 format, once per signer", () => {
+  // build-tools 37 names the scheme instead of numbering the signer.
+  const out = [
+    `V2 Signer: certificate DN: ${DEBUG}`,
+    "V2 Signer: certificate SHA-256 digest: 00ff",
+    `V3 Signer: certificate DN: ${DEBUG}`,
+  ].join("\n");
+  assert.deepEqual(signerDns(out), [DEBUG]);
+  assert.deepEqual(signerDns(`V2 Signer #2: certificate DN: ${RELEASE}`), [RELEASE]);
+});
+
 test("apkFileName marks debug-signed APKs", () => {
   assert.equal(apkFileName("eink", "debug"), "daily-dispatch-android-eink-debug-signed.apk");
   assert.equal(apkFileName("phone", "release"), "daily-dispatch-android-phone.apk");

@@ -46,9 +46,13 @@ export function zipEntries(buf: Buffer): Map<string, ZipEntry> {
   return entries;
 }
 
-// Certificate DNs from `apksigner verify --print-certs`.
+// Certificate DNs from `apksigner verify --print-certs`, once each. Up to
+// build-tools 36 a line reads "Signer #1 certificate DN: ..."; build-tools 37
+// names the scheme instead ("V2 Signer: certificate DN: ...") and repeats a
+// signer for each scheme it signed.
 export function signerDns(apksignerOutput: string): string[] {
-  return [...apksignerOutput.matchAll(/^Signer #\d+ certificate DN: (.+)$/gm)].map((m) => m[1].trim());
+  const dns = [...apksignerOutput.matchAll(/^(?:V[\d.]+ )?Signer(?: #\d+)?:? certificate DN: (.+)$/gm)].map((m) => m[1].trim());
+  return [...new Set(dns)];
 }
 
 export function isDebugCertificate(dn: string): boolean {
