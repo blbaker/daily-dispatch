@@ -28,6 +28,10 @@ MUTANTS = [
     ("lambda/routes/episodes.ts", "if (!(await audioUploaded(deps, episode))) {", "if (false) {",
      "episode notifies before the upload"),
     ("lambda/routes/episodes.ts", 'if (!e || e.status !== "ready")', "if (!e)", "uploading episode served"),
+    ("lambda/push/receipts.ts", "age(r) >= MIN_AGE_MS && ", "", "receipts asked too early"),
+    ("lambda/push/receipts.ts", "for (const id of dead) await deleteDevice(deps, id);", "", "receipt dead token kept"),
+    ("lambda/handler.ts", 'isScheduled(event) ? checkExpoReceipts(deps) : http(event)', 'http(event as HttpEvent)',
+     "schedule never checks receipts"),
 ]
 
 def run_suite() -> bool:

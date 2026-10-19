@@ -3,14 +3,20 @@
 // Auth: every request except GET /health must carry the API key, either as
 // the `x-api-key` header or the `?key=` query parameter. Compared in constant
 // time. The deployment has a single user.
+//
+// The same function also runs on an hourly EventBridge schedule to check
+// Expo delivery receipts; those events carry source "aws.events" and no
+// HTTP request context, which a Function URL caller cannot forge.
 import { Deps, defaultDeps } from "./deps";
 import { HttpError, HttpEvent, HttpResult, extractKey, json, keyMatches, methodAndPath, query } from "./http";
+import { ReceiptReport, checkExpoReceipts } from "./push/receipts";
 import { Route, matchRoute } from "./router";
 import { appReleaseRoutes } from "./routes/app-release";
 import { deviceRoutes } from "./routes/devices";
 import { editionRoutes } from "./routes/editions";
 import { episodeRoutes } from "./routes/episodes";
 import { notificationRoutes } from "./routes/notifications";
+import { pushRoutes } from "./routes/push";
 import { settingsRoutes } from "./routes/settings";
 
 export const ROUTES: Route[] = [
@@ -18,13 +24,34 @@ export const ROUTES: Route[] = [
   ...appReleaseRoutes,
   ...settingsRoutes,
   ...deviceRoutes,
+  ...pushRoutes,
   ...notificationRoutes,
   ...episodeRoutes,
 ];
 
 const PLACEHOLDER_KEY = "PLACEHOLDER_SET_AT_DEPLOY";
 
-export function createHandler(deps: Deps) {
+export interface ScheduledEvent {
+  source: "aws.events";
+  "detail-type"?: string;
+}
+
+export interface Handler {
+  (event: HttpEvent): Promise<HttpResult>;
+  (event: ScheduledEvent): Promise<ReceiptReport>;
+}
+
+function isScheduled(event: HttpEvent | ScheduledEvent): event is ScheduledEvent {
+  return (event as ScheduledEvent).source === "aws.events" && !("requestContext" in event);
+}
+
+export function createHandler(deps: Deps): Handler {
+  const http = createHttpHandler(deps);
+  return ((event: HttpEvent | ScheduledEvent) =>
+    isScheduled(event) ? checkExpoReceipts(deps) : http(event)) as Handler;
+}
+
+function createHttpHandler(deps: Deps) {
   return async (event: HttpEvent): Promise<HttpResult> => {
     const { method, path } = methodAndPath(event);
     if (method === "GET" && path === "/health") return json(200, { ok: true });
@@ -48,9 +75,9 @@ export function createHandler(deps: Deps) {
   };
 }
 
-let live: ReturnType<typeof createHandler> | undefined;
+let live: Handler | undefined;
 
-export const handler = (event: HttpEvent): Promise<HttpResult> => {
+export const handler = ((event: HttpEvent | ScheduledEvent) => {
   live ??= createHandler(defaultDeps());
-  return live(event);
-};
+  return live(event as HttpEvent);
+}) as Handler;
