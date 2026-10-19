@@ -4,6 +4,7 @@
 import { BatchWriteCommand, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { Deps } from "../deps";
 import { HttpError, json, readJson } from "../http";
+import { PublishReport, publish } from "../push/fanout";
 import { Route } from "../router";
 
 type Row = Record<string, any>;
@@ -155,12 +156,41 @@ export async function upsertEdition(
   };
 }
 
+const DAY_MS = 86_400_000;
+
+/**
+ * True for yesterday, today or tomorrow (UTC). The 5 PM job re-posts every
+ * finished edition it has; only a recent one should notify. Yesterday is
+ * included because a Central-time evening edition is "tomorrow" in UTC.
+ */
+export function isRecentEdition(date: string, now: Date): boolean {
+  const d = Date.parse(`${date}T00:00:00Z`);
+  if (Number.isNaN(d)) return false;
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return d >= today - DAY_MS && d <= today + DAY_MS;
+}
+
+async function notifyEdition(deps: Deps, e: StoredEdition): Promise<PublishReport> {
+  if (!isRecentEdition(e.date, deps.now())) return { recorded: false, reason: "old-edition" };
+  const more = e.count - 1;
+  return publish(deps, {
+    event: "edition",
+    refId: e.date,
+    title: "New edition ready",
+    body: more > 0 ? `${e.lead} + ${more} more ${more === 1 ? "story" : "stories"}` : e.lead || "Today's stories are in",
+    data: { type: "edition", id: e.date, path: `/editions/${e.date}` },
+  });
+}
+
 const postEdition: Route = {
   method: "POST",
   pattern: /^\/editions$/,
   run: async ({ deps, event }) => {
     const { edition, removed } = await upsertEdition(deps, readJson(event));
-    return json(200, { ok: true, date: edition.date, stories: edition.count, removed });
+    const reply: Record<string, unknown> = { ok: true, date: edition.date, stories: edition.count, removed };
+    // Live (in-progress) editions update all day; only a finished one notifies.
+    if (!edition.inProgress) reply.push = await notifyEdition(deps, edition);
+    return json(200, reply);
   },
 };
 

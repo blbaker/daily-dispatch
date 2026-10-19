@@ -9,9 +9,16 @@ import { Route, matchRoute } from "./router";
 import { appReleaseRoutes } from "./routes/app-release";
 import { deviceRoutes } from "./routes/devices";
 import { editionRoutes } from "./routes/editions";
+import { notificationRoutes } from "./routes/notifications";
 import { settingsRoutes } from "./routes/settings";
 
-export const ROUTES: Route[] = [...editionRoutes, ...appReleaseRoutes, ...settingsRoutes, ...deviceRoutes];
+export const ROUTES: Route[] = [
+  ...editionRoutes,
+  ...appReleaseRoutes,
+  ...settingsRoutes,
+  ...deviceRoutes,
+  ...notificationRoutes,
+];
 
 const PLACEHOLDER_KEY = "PLACEHOLDER_SET_AT_DEPLOY";
 

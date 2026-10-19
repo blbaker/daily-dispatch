@@ -4,6 +4,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { Deps, readEnv } from "../lambda/deps";
 import { createHandler } from "../lambda/handler";
+import { createProviders } from "../lambda/push/registry";
 
 export const KEY = "test-key";
 
@@ -53,6 +54,8 @@ export function testDeps(over: Partial<Deps> = {}): Deps {
     }) as typeof fetch,
     now: () => NOW,
     log: () => undefined,
+    // No credentials: both providers disabled, nothing can reach the network.
+    push: async () => createProviders({}, { fetch: globalThis.fetch, log: () => undefined }),
     ...over,
   };
 }

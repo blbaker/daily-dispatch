@@ -3,6 +3,7 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { AwsCreds, lambdaCreds } from "./presign";
+import { PushProviders, liveProviders } from "./push/registry";
 
 export interface Env {
   table: string;
@@ -20,6 +21,7 @@ export interface Deps {
   fetch: typeof fetch;
   now: () => Date;
   log: (message: string, detail?: unknown) => void;
+  push: () => Promise<PushProviders>;
 }
 
 export function readEnv(e: NodeJS.ProcessEnv = process.env): Env {
@@ -37,14 +39,17 @@ export function defaultDeps(): Deps {
   const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
     marshallOptions: { removeUndefinedValues: true },
   });
+  // Looked up on every call so a replaced global (tests) is honoured.
+  const fetchNow: typeof fetch = (input, init) => globalThis.fetch(input, init);
+  const log: Deps["log"] = (message, detail) =>
+    detail === undefined ? console.log(message) : console.log(message, detail);
   return {
     ddb,
     env: readEnv(),
     creds: lambdaCreds,
-    // Looked up on every call so a replaced global (tests) is honoured.
-    fetch: (input, init) => globalThis.fetch(input, init),
+    fetch: fetchNow,
     now: () => new Date(),
-    log: (message, detail) =>
-      detail === undefined ? console.log(message) : console.log(message, detail),
+    log,
+    push: liveProviders({ fetch: fetchNow, log }),
   };
 }
