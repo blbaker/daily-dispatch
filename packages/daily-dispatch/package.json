@@ -2,6 +2,24 @@
   "name": "daily-dispatch",
   "version": "0.1.0",
   "description": "Turn a day's links into a two-host podcast: pluggable script writers and voice providers, with a CLI.",
+  "keywords": [
+    "podcast",
+    "text-to-speech",
+    "tts",
+    "elevenlabs",
+    "openai",
+    "ollama",
+    "cli"
+  ],
+  "homepage": "https://github.com/blbaker/daily-dispatch/tree/main/packages/daily-dispatch#readme",
+  "bugs": {
+    "url": "https://github.com/blbaker/daily-dispatch/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blbaker/daily-dispatch.git",
+    "directory": "packages/daily-dispatch"
+  },
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -22,8 +40,13 @@
   "files": [
     "dist",
     "examples",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
