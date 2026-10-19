@@ -2,8 +2,10 @@ import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as nodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as s3 from "aws-cdk-lib/aws-s3";
+import * as path from "path";
 
 /**
  * Daily Digest backend — cheapest viable serverless for a SINGLE user.
@@ -60,12 +62,19 @@ export class DigestStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
-    const fn = new lambda.Function(this, "DigestApi", {
+    // The handler is TypeScript under lambda/, bundled by esbuild at synth
+    // time. The AWS SDK v3 ships with the Node.js runtime, so it stays out of
+    // the bundle; everything else (web-push) is bundled in.
+    const backendRoot = path.join(__dirname, "..");
+    const fn = new nodejs.NodejsFunction(this, "DigestApi", {
       functionName: "daily-digest-api",
       runtime: lambda.Runtime.NODEJS_20_X,
       architecture: lambda.Architecture.ARM_64, // Graviton — cheapest
-      handler: "handler.handler",
-      code: lambda.Code.fromAsset("lambda"),
+      entry: path.join(backendRoot, "lambda", "handler.ts"),
+      handler: "handler",
+      projectRoot: backendRoot,
+      depsLockFilePath: path.join(backendRoot, "pnpm-lock.yaml"),
+      bundling: { externalModules: ["@aws-sdk/*"] },
       memorySize: 256, // small; JSON assembly only
       timeout: cdk.Duration.seconds(10),
       environment: {
