@@ -6,6 +6,10 @@ the branch and commit flow works, and what CI checks before a PR can merge.
 
 ## Getting set up
 
+You need git, Node 24, pnpm 10 or newer, and Python 3.12 or newer. The
+commands below are the ones a fresh clone was checked with; none of them
+need AWS credentials or any API key.
+
 Fork the repo, clone your fork, and add the upstream remote:
 
 ```
@@ -34,8 +38,9 @@ npm run web              # run it in a browser
 
 ```
 cd backend
-pnpm install
-pnpm exec tsc --noEmit  # typecheck
+pnpm install --frozen-lockfile --ignore-workspace  # backend keeps its own lockfile
+pnpm typecheck
+pnpm test
 pnpm exec cdk synth     # renders the CloudFormation template, no AWS credentials needed
 ```
 
@@ -92,6 +97,12 @@ Every PR runs:
 
 Run the same commands locally before opening a PR; it's faster than
 waiting on the workflow.
+
+## Working with an AI coding agent
+
+If you use Claude Code, Codex or a similar agent, point it at
+[AGENTS.md](AGENTS.md). It lists the same checks and rules as this file,
+plus the commands an agent must never run. `CLAUDE.md` only points there.
 
 ## Opening a PR
 

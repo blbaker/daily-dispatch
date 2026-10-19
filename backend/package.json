@@ -1,6 +1,7 @@
 {
   "name": "daily-digest-backend",
   "version": "1.0.0",
+  "license": "MIT",
   "private": true,
   "bin": {
     "digest": "bin/app.ts"

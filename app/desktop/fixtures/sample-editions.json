@@ -1,0 +1,109 @@
+{
+  "//": "Sample editions served by scripts/mock-api.mts. Made-up stories for the desktop gate and demo; {{base}} is replaced with the mock server's URL.",
+  "editions": [
+    {
+      "id": "2026-10-18",
+      "date": "October 18",
+      "weekday": "Sunday",
+      "full": "Sunday, October 18, 2026",
+      "hero": "{{base}}/img/hero-0.png",
+      "stories": [
+        {
+          "cat": "science",
+          "headline": "Lake sediment cores push back the date of the region's first farms",
+          "source": "Field Notes Weekly",
+          "url": "https://example.com/science/sediment-cores",
+          "image": "{{base}}/img/story-0.png",
+          "overview": [
+            { "label": "What", "text": "Pollen in three cores shows cereal crops 600 years earlier than thought." },
+            { "label": "Why it matters", "text": "It moves the start of settled farming into a wetter climate window." }
+          ],
+          "summary": [
+            "Researchers drilled three cores from a shallow glacial lake and counted pollen grains layer by layer.",
+            "Cereal pollen shows up roughly six centuries before the oldest known farm buildings nearby."
+          ],
+          "fullText": "The team drilled the cores in winter, standing on the ice.\n\nEach centimetre of mud covers about a decade. The pollen counts were checked by two labs working blind.",
+          "linked": null
+        },
+        {
+          "cat": "tech",
+          "headline": "A small team rewrote its build system and cut CI time in half",
+          "source": "Build Log",
+          "url": "https://example.com/tech/build-system",
+          "image": "{{base}}/img/story-1.png",
+          "summary": ["Caching test results by input hash did most of the work."],
+          "fullText": "The old pipeline rebuilt every package on every push.\n\nThe new one hashes inputs and skips work it has already done.",
+          "linked": null
+        },
+        {
+          "cat": "world",
+          "headline": "River towns agree on a shared flood warning network",
+          "source": "Regional Desk",
+          "url": "https://example.com/world/flood-network",
+          "image": "",
+          "summary": ["Twelve towns will share gauge readings every five minutes."],
+          "fullText": "",
+          "linked": null
+        },
+        {
+          "cat": "business",
+          "headline": "Independent bookshops report their best autumn in a decade",
+          "source": "Trade Notes",
+          "url": "https://example.com/business/bookshops",
+          "image": "{{base}}/img/story-3.png",
+          "summary": ["Events and reading clubs are bringing people back in."],
+          "fullText": "",
+          "linked": null
+        }
+      ]
+    },
+    {
+      "id": "2026-10-17",
+      "date": "October 17",
+      "weekday": "Saturday",
+      "full": "Saturday, October 17, 2026",
+      "hero": "{{base}}/img/hero-1.png",
+      "stories": [
+        {
+          "cat": "health",
+          "headline": "Walking meetings catch on at a mid-sized hospital",
+          "source": "Ward Round",
+          "url": "https://example.com/health/walking-meetings",
+          "image": "",
+          "summary": ["Staff say short walks make the weekly check-in shorter too."],
+          "fullText": "",
+          "linked": null
+        },
+        {
+          "cat": "sports",
+          "headline": "Community league adds a winter season for the first time",
+          "source": "Local Sports",
+          "url": "https://example.com/sports/winter-season",
+          "image": "",
+          "summary": ["Games move indoors from November to February."],
+          "fullText": "",
+          "linked": null
+        }
+      ]
+    },
+    {
+      "id": "2026-10-16",
+      "date": "October 16",
+      "weekday": "Friday",
+      "full": "Friday, October 16, 2026",
+      "hero": "",
+      "stories": [
+        {
+          "cat": "entertainment",
+          "headline": "A silent film festival sells out with a live score",
+          "source": "Screen Notes",
+          "url": "https://example.com/entertainment/silent-film",
+          "image": "",
+          "summary": ["Local musicians wrote new scores for five short films."],
+          "fullText": "",
+          "linked": null
+        }
+      ]
+    }
+  ]
+}

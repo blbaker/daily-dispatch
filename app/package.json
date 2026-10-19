@@ -11,7 +11,14 @@
     "e2e:screens": "node e2e/screens.ts",
     "test": "vitest run",
     "build:sw": "tsc -p sw",
-    "e2e:webpush": "node e2e/webpush.ts"
+    "e2e:webpush": "node e2e/webpush.ts",
+    "desktop:install": "npm --prefix desktop ci",
+    "desktop": "npm --prefix desktop run desktop",
+    "desktop:demo": "npm --prefix desktop run demo",
+    "desktop:bundle": "npm --prefix desktop run bundle",
+    "desktop:package": "npm --prefix desktop run package",
+    "desktop:gate": "npm --prefix desktop run gate",
+    "desktop:typecheck": "npm --prefix desktop run typecheck"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.1.0",
@@ -37,5 +44,6 @@
     "vite": "8.3.4",
     "vitest": "5.0.5"
   },
+  "license": "MIT",
   "private": true
 }
