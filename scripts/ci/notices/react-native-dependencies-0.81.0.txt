@@ -1,0 +1,19 @@
+React Native 0.81.0 third-party dependencies (CocoaPods ReactNativeDependencies)
+
+React Native's ReactNativeDependencies pod is a prebuilt framework holding
+the third-party C++ and Objective-C libraries React Native itself depends
+on. Its podspec declares no license of its own, so this note lists what it
+contains (react-native/scripts/cocoapods/rndependencies.rb and
+react-native/third-party-podspecs at 0.81.0) with each library's license:
+
+- glog 0.3.5: BSD-3-Clause (Google)
+- Boost 1.84.0: BSL-1.0
+- double-conversion 1.1.6: BSD-3-Clause (Google)
+- fast_float 8.0.0: MIT (also available under Apache-2.0 or BSL-1.0)
+- fmt 11.0.2: MIT
+- folly (RCT-Folly): Apache-2.0 (Meta Platforms)
+- SocketRocket: BSD-3-Clause (Meta Platforms)
+
+The license texts that follow are the standard SPDX texts for Apache-2.0,
+BSD-3-Clause and BSL-1.0, without the libraries' own copyright lines. The MIT
+text above this note is React Native's own license.

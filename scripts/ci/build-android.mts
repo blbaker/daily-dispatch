@@ -84,8 +84,12 @@ function main(): number {
   for (const v of VARIANTS) {
     // Gradle does not track EXPO_PUBLIC_* as inputs of the JS bundle task, so
     // without --rerun the second variant would reuse the first one's bundle.
+    // CI is dropped too: with CI set, `expo export:embed` skips the Metro cache
+    // reset React Native asks for, and the second variant reuses transforms
+    // with the first one's EXPO_PUBLIC_EINK inlined.
+    const { CI: _ci, ...env } = process.env;
     gradle([":app:createBundleReleaseJsAndAssets", "--rerun", "assembleRelease", ...signArgs], {
-      ...process.env,
+      ...env,
       EXPO_PUBLIC_EINK: v.eink,
     });
     const file = join(outDir, apkFileName(v.name, mode));
