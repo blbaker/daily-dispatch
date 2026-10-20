@@ -68,7 +68,7 @@ Build the CLI from the workspace and run it on the bundled example stories:
 
 ```sh
 pnpm install
-pnpm --filter daily-dispatch build
+pnpm --filter @blbaker/daily-dispatch build
 node packages/daily-dispatch/dist/cli/bin.js podcast make \
   --stories packages/daily-dispatch/examples/stories.example.json \
   --writer anthropic --voice elevenlabs \

@@ -47,7 +47,7 @@ const CASES: [rule: string, title: string, mutate: (l: string[]) => string[]][] 
   ['P2', 'a TypeScript source ships', add('src/index.ts')],
   ['P2', 'an env file ships', add('.env')],
   ['P2', 'a source map ships', add('dist/index.js.map')],
-  ['P2', 'a stray tarball ships', add('daily-dispatch-0.1.0.tgz')],
+  ['P2', 'a stray tarball ships', add('blbaker-daily-dispatch-0.1.0.tgz')],
   ['P3', 'one source was not built', drop('dist/podcast.js')],
   ['P3', 'one declaration was not built', drop('dist/podcast.d.ts')],
   ['P3', 'a stale build output from a deleted source ships', add('dist/removed-module.js')],

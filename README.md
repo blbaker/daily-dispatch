@@ -48,7 +48,7 @@ cd ..
 
 # A podcast script from the example stories, with no paid call
 pnpm install
-pnpm --filter daily-dispatch build
+pnpm --filter @blbaker/daily-dispatch build
 node packages/daily-dispatch/dist/cli/bin.js podcast make \
   --stories packages/daily-dispatch/examples/stories.example.json \
   --writer anthropic --voice elevenlabs \

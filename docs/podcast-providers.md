@@ -13,7 +13,7 @@ ffmpeg then joins the audio into one MP3 next to a Markdown transcript.
 ## Install
 
 ```sh
-npm install -g daily-dispatch
+npm install -g @blbaker/daily-dispatch
 daily-dispatch --help
 ```
 
@@ -23,7 +23,7 @@ run `node packages/daily-dispatch/dist/cli/bin.js` wherever this page says
 
 ```sh
 pnpm install
-pnpm --filter daily-dispatch build
+pnpm --filter @blbaker/daily-dispatch build
 ```
 
 It needs Node.js 22.18 or newer, and ffmpeg on your `PATH` for audio
