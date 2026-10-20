@@ -40,8 +40,8 @@ npm login
 ### 1. Create the package name with a throwaway staged version
 
 `npm trust` only works on a package that already exists, and `daily-dispatch`
-does not exist yet. Staging a throwaway prerelease creates the name. Reject
-it right away so nothing is ever published under it.
+does not exist yet. Staging a throwaway prerelease creates the name. It is
+never approved, so nothing is ever published under it.
 
 ```sh
 git clone https://github.com/blbaker/daily-dispatch.git
@@ -51,24 +51,17 @@ pnpm -r build
 cd packages/daily-dispatch
 npm version 0.0.0-bootstrap.0 --no-git-tag-version
 npm stage publish --tag bootstrap --provenance=false
+git checkout -- package.json
 ```
 
 npm needs `--tag` for a prerelease version. `--provenance=false` is needed
 here because `package.json` asks for provenance, and only a CI run can
 produce it.
 
-Then reject the staged version and put the real version back:
-
-```sh
-npm stage list daily-dispatch
-npm stage reject STAGE_ID
-git checkout -- package.json
-```
-
-Replace `STAGE_ID` with the ID that `npm stage list` prints for
-`0.0.0-bootstrap.0`. Don't approve it. Afterwards,
-`npm view daily-dispatch versions` may list `0.0.0-stage`: npm adds that
-placeholder itself when it creates a name for staging.
+Leave the staged placeholder alone until the first real release is approved
+(step 4). Rejecting it now would leave the package with no versions at all,
+which unpublishes the name: `npm trust` then fails with a 404, and npm refuses
+to stage anything under the name for 24 hours.
 
 ### 2. Add the trusted publisher
 
@@ -85,6 +78,7 @@ npm trust github daily-dispatch \
 npm trust list daily-dispatch
 ```
 
+Run it while the placeholder from step 1 is still staged.
 `npm trust` always asks for 2FA, through a link it opens in the browser.
 `--allow-stage-publish` without `--allow-publish` means a workflow run can
 only stage a version, never publish one directly. The same setting is on
@@ -159,6 +153,11 @@ npm audit signatures
 
 `npm audit signatures` should report a verified attestation for
 `daily-dispatch`.
+
+Now reject the placeholder from step 1. Find the `0.0.0-bootstrap.0` entry in
+`npm stage list daily-dispatch` and run `npm stage reject STAGE_ID` with its
+ID. Afterwards, `npm view daily-dispatch versions` may list `0.0.0-stage`: npm
+adds that placeholder itself when it creates a name for staging.
 
 ## Every later release
 
