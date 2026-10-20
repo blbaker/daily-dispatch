@@ -1,6 +1,6 @@
-# Releasing daily-dispatch to npm
+# Releasing @blbaker/daily-dispatch to npm
 
-The `daily-dispatch` package in `packages/daily-dispatch` is published by
+The `@blbaker/daily-dispatch` package in `packages/daily-dispatch` is published by
 GitHub Actions with npm trusted publishing. The repository stores no npm
 token, and every release waits on npm as a staged version until a
 maintainer approves it with 2FA.
@@ -39,7 +39,7 @@ npm login
 
 ### 1. Create the package name with a throwaway staged version
 
-`npm trust` only works on a package that already exists, and `daily-dispatch`
+`npm trust` only works on a package that already exists, and `@blbaker/daily-dispatch`
 does not exist yet. Staging a throwaway prerelease creates the name. It is
 never approved, so nothing is ever published under it.
 
@@ -69,13 +69,13 @@ Do this no more than two days before the first release: npm expires a
 trusted publisher that goes unused for two days.
 
 ```sh
-npm trust github daily-dispatch \
+npm trust github @blbaker/daily-dispatch \
   --file release.yml \
   --repository blbaker/daily-dispatch \
   --environment npm-publish \
   --allow-stage-publish \
   --yes
-npm trust list daily-dispatch
+npm trust list @blbaker/daily-dispatch
 ```
 
 Run it while the placeholder from step 1 is still staged.
@@ -134,7 +134,7 @@ Replace `RUN_ID` with the ID from the first command. When `publish` succeeds,
 check the staged version and approve it:
 
 ```sh
-npm stage list daily-dispatch
+npm stage list @blbaker/daily-dispatch
 npm stage view STAGE_ID
 npm stage approve STAGE_ID
 ```
@@ -146,23 +146,23 @@ Finally, install it like a user would:
 
 ```sh
 cd "$(mktemp -d)"
-npm install daily-dispatch
-npx daily-dispatch --help
+npm install @blbaker/daily-dispatch
+npx @blbaker/daily-dispatch --help
 npm audit signatures
 ```
 
 `npm audit signatures` should report a verified attestation for
-`daily-dispatch`.
+`@blbaker/daily-dispatch`.
 
 Now reject the placeholder from step 1. Find the `0.0.0-bootstrap.0` entry in
-`npm stage list daily-dispatch` and run `npm stage reject STAGE_ID` with its
-ID. Afterwards, `npm view daily-dispatch versions` may list `0.0.0-stage`: npm
+`npm stage list @blbaker/daily-dispatch` and run `npm stage reject STAGE_ID` with its
+ID. Afterwards, `npm view @blbaker/daily-dispatch versions` may list `0.0.0-stage`: npm
 adds that placeholder itself when it creates a name for staging.
 
 ## Every later release
 
 Merge the release PR, then approve the staged version with
-`npm stage list daily-dispatch` and `npm stage approve STAGE_ID`.
+`npm stage list @blbaker/daily-dispatch` and `npm stage approve STAGE_ID`.
 
 ## What stops an accidental publish
 

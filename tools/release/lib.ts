@@ -25,7 +25,7 @@ export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url
 
 /** The npm package this repo publishes. One place, so a rename is one diff. */
 export const PACKAGE = {
-  name: 'daily-dispatch',
+  name: '@blbaker/daily-dispatch',
   dir: 'packages/daily-dispatch',
   repoUrl: 'https://github.com/blbaker/daily-dispatch',
   access: 'public',

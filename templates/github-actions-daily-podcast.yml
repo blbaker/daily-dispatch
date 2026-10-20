@@ -85,7 +85,7 @@ jobs:
         run: |
           args=(podcast run --if-due --config "$DAILY_DISPATCH_CONFIG" --state "$STATE_DIR/state.json" --out episodes)
           if [ "$FORCE" = true ]; then args+=(--force); fi
-          npx --yes "daily-dispatch@${DAILY_DISPATCH_VERSION}" "${args[@]}"
+          npx --yes "@blbaker/daily-dispatch@${DAILY_DISPATCH_VERSION}" "${args[@]}"
 
       - name: Save the state file
         if: always()

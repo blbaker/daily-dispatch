@@ -21,7 +21,7 @@ takes effect at the next check. You never reinstall the job to change the time.
 Install the CLI and ffmpeg on the machine that will make the episodes:
 
 ```sh
-npm install -g daily-dispatch
+npm install -g @blbaker/daily-dispatch
 ffmpeg -version            # macOS: brew install ffmpeg, Debian/Ubuntu: apt install ffmpeg
 ```
 

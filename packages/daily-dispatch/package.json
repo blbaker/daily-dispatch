@@ -1,5 +1,5 @@
 {
-  "name": "daily-dispatch",
+  "name": "@blbaker/daily-dispatch",
   "version": "0.1.0",
   "description": "Turn a day's links into a two-host podcast: pluggable script writers and voice providers, with a CLI.",
   "keywords": [

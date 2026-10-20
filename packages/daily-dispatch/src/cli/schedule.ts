@@ -114,7 +114,7 @@ export async function schedule(argv: readonly string[], io: CliIo): Promise<numb
   }
   io.stdout(`installed: ${NAMES[kind]}, checking every ${everyMinutes} minutes`);
   io.stdout(`log: ${logFile}`);
-  if (script.includes('_npx')) io.stdout('note: this runs from the npx cache, which can be cleared. Install the package globally (npm i -g daily-dispatch) and reinstall the job.');
+  if (script.includes('_npx')) io.stdout('note: this runs from the npx cache, which can be cleared. Install the package globally (npm i -g @blbaker/daily-dispatch) and reinstall the job.');
   if (kind === 'systemd') io.stdout('note: user timers stop when you log out unless lingering is on: loginctl enable-linger "$USER"');
   return 0;
 }

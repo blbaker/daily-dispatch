@@ -1,4 +1,4 @@
-# daily-dispatch
+# @blbaker/daily-dispatch
 
 Turns a day's links into a two-host, call-in style podcast episode. A script
 writer (Claude, OpenAI, a local Ollama model, or any CLI) writes the show from
@@ -17,12 +17,12 @@ Needs Node.js 22 or newer, and ffmpeg on your `PATH` to produce audio
 A dry run works without ffmpeg.
 
 ```sh
-npm install -g daily-dispatch
+npm install -g @blbaker/daily-dispatch
 daily-dispatch --help
 ```
 
-Or run it once without installing: `npx daily-dispatch --help`. From this
-repository: `pnpm install && pnpm --filter daily-dispatch build`,
+Or run it once without installing: `npx @blbaker/daily-dispatch --help`. From this
+repository: `pnpm install && pnpm --filter @blbaker/daily-dispatch build`,
 then `node packages/daily-dispatch/dist/cli/bin.js --help`.
 
 ## Quick start
@@ -266,7 +266,7 @@ docs/daily-podcast.md in the repository for settings, schedulers and costs.
 ## Library use
 
 ```ts
-import { createFfmpeg, getVoiceProvider, getWriter, makePodcast, parseStories, parseVoiceMap } from 'daily-dispatch';
+import { createFfmpeg, getVoiceProvider, getWriter, makePodcast, parseStories, parseVoiceMap } from '@blbaker/daily-dispatch';
 
 const ctx = { env: process.env, fetchImpl: fetch, sleep: (ms: number) => new Promise<void>((r) => setTimeout(r, ms)) };
 const result = await makePodcast({
