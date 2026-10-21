@@ -2,9 +2,9 @@
 
 The desktop app is the same React Native code as the phone app in `app/src`,
 rendered by the Impeller engine from
-[react-native-impeller-platform](https://www.npmjs.com/package/react-native-impeller-platform).
-There is no Electron and no web view. The engine is a native binary that npm
-installs for your OS and CPU.
+[react-native-impeller-platform](https://www.npmjs.com/package/react-native-impeller-platform),
+a native binary that npm installs for your OS and CPU, without Electron or a
+web view.
 
 Supported hosts are the ones the engine ships for: macOS on Apple silicon
 (darwin-arm64), Linux x64 and Windows x64.
@@ -13,7 +13,7 @@ Supported hosts are the ones the engine ships for: macOS on Apple silicon
 
 The phone and web builds run on Expo SDK 54 with React Native 0.81. The
 engine is compiled against React Native 0.86.2, so the desktop build lives in
-its own small project, `app/desktop`, with its own `react-native`. Its Metro
+a separate project, `app/desktop`, with its own copy of `react-native`. Its Metro
 config pulls the shared source from `app/src` and resolves every package
 import from `app/desktop/node_modules`, so the phone app's copy of React
 Native never ends up in a desktop bundle.

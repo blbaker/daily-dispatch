@@ -1,6 +1,6 @@
 # Releasing
 
-A release has up to four parts, and each one has its own trigger. Only the
+A release has up to four parts, and each one has a different trigger. Only the
 first is automatic.
 
 | Part | How it is made | Who runs it |

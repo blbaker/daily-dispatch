@@ -124,4 +124,4 @@ python3 -m py_compile pipeline/*.py
 python3 -m unittest discover -s tests
 ```
 
-The tests cover the parsers and need no network and no API key.
+The tests cover the parsers and run without network access or an API key.

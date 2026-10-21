@@ -42,7 +42,7 @@ pnpm test
 pnpm exec cdk synth --quiet
 ```
 
-The backend keeps its own lockfile, so it installs with `--ignore-workspace`.
+The backend keeps a separate lockfile, so it installs with `--ignore-workspace`.
 `cdk synth` renders the CloudFormation template with a placeholder API key.
 
 ## Deploy
@@ -85,7 +85,7 @@ The deploy prints four outputs:
 
 ## Point the clients at it
 
-Each part reads the URL and key from its own variables:
+Each part reads the URL and key from separate variables:
 
 | Part | URL | Key |
 |---|---|---|

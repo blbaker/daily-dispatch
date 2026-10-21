@@ -72,12 +72,15 @@ export function syncDocs(repoRoot: string, outDir: string, pages: Page[] = PAGES
   mkdirSync(outDir, { recursive: true });
   for (const page of pages) {
     const body = readFileSync(join(repoRoot, page.src), 'utf8');
+    // The notice is a YAML comment so the page's own # heading stays the first
+    // line of the body. Docusaurus takes the page title from that heading only
+    // when nothing comes before it; otherwise the browser tab shows the id.
     const front = [
       '---',
+      `# Generated from ${page.src} by website/scripts/sync-docs.mts. Edit that file.`,
       `id: ${page.id}`,
       `custom_edit_url: ${REPO_URL}/edit/main/${page.src}`,
       '---',
-      `<!-- Generated from ${page.src} by website/scripts/sync-docs.mts. Edit that file. -->`,
       '',
     ].join('\n');
     writeFileSync(join(outDir, `${page.id}.md`), front + rewriteLinks(body, page.src, repoRoot, pages));
