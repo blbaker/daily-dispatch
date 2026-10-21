@@ -5,11 +5,11 @@ time every day. It is off by default and nothing runs until you set it up.
 
 The setup has two parts that stay separate on purpose:
 
-- **Settings** say whether the episode is on, what time it is made, in which
+- Settings say whether the episode is on, what time it is made, in which
   time zone, and which script writer, voice provider and host voices to use.
   They live in the app's Settings screen (stored by the backend at
   `/settings`) or, without a backend, in a local config file.
-- **A scheduled job** runs `daily-dispatch podcast run --if-due` every 15
+- A scheduled job runs `daily-dispatch podcast run --if-due` every 15
   minutes. Each run reads the settings, and does nothing unless the episode is
   on, the local time is past the set time, and today has no episode yet.
 
@@ -187,8 +187,8 @@ Each check reads the settings fresh, so:
   keeps running and logs `not due: disabled`.
 - Changing the time or time zone applies to the next check. If the new time
   has already passed today and today has no episode, the next check makes one.
-- The episode belongs to the local date in the settings' time zone, not the
-  UTC date and not the machine's own zone.
+- The episode belongs to the local date in the settings' time zone, which can
+  differ from the UTC date and from the machine's local time zone.
 - A time inside the hour that daylight saving skips (02:30 on a spring-forward
   day in the US) runs at the first check after the clock jumps. The hour that
   repeats in autumn runs once, because the date is recorded.

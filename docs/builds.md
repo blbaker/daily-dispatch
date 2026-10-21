@@ -104,7 +104,7 @@ the tags it then creates start this workflow and `release.yml`.
 
 ## Running the steps locally
 
-Every CI step runs from the repository's own scripts. From the repository
+Every CI step runs from scripts in the repository. From the repository
 root, with Node 24:
 
 ```bash
@@ -149,19 +149,19 @@ the same installed packages.
 
 What each file covers:
 
-- **npm**, all targets: the production dependencies in `app/package-lock.json`
+- npm, all targets: the production dependencies in `app/package-lock.json`
   (Android, iOS, web) or `app/desktop/package-lock.json` (desktop). Dev
   dependencies are left out. This list also names build tools such as Metro
   and Babel that do not ship in the app, which errs on the safe side.
   Packages built for one OS and CPU (npm's `os` and `cpu` fields) count only
   for the desktop target they match, which is how the Impeller engine package
   gets in and build-machine binaries such as lightningcss stay out.
-- **Maven**, Android: the modules on the app's release runtime classpath
+- Maven, Android: the modules on the app's release runtime classpath
   (AndroidX, Fresco, OkHttp and so on). The generator runs a Gradle task from
   `scripts/ci/notices/android-poms.init.gradle` in `app/android`, which lists
   every module with its POM. The license comes from the POM, or from a parent
-  POM when the module's own POM names none.
-- **CocoaPods**, iOS: the pods in `app/ios/Podfile.lock`, with the license
+  POM when the module's POM names none.
+- CocoaPods, iOS: the pods in `app/ios/Podfile.lock`, with the license
   text CocoaPods collected in `Pods-<target>-acknowledgements.plist`. Both
   files only exist after `pod install`, which needs macOS, so the iOS CI job
   generates this file; it cannot be made on Linux.

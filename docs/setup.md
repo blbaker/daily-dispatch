@@ -1,8 +1,8 @@
 # Get started
 
-Daily Dispatch is a set of parts you can run on their own. This page gets
-each one running on your machine with sample data. None of the commands here
-need an account, an API key or a deployed backend.
+Daily Dispatch is a set of parts, each of which runs on its own. This page
+gets each one running on your machine with sample data. None of the
+commands here need an account, an API key or a deployed backend.
 
 - The app (`app/`) shows the day's edition on a phone, an e-ink tablet, the
   web and the desktop.

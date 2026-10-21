@@ -224,7 +224,7 @@ Settings shape, with the defaults:
 }
 ```
 
-`notifications.enabled` silences everything. A device's own `prefs` have the
+`notifications.enabled` silences everything. Each device's `prefs` have the
 same three switches, and both must allow an event before it is sent.
 `podcast.time` is `HH:MM` in `podcast.timezone`; the daily episode job reads
 these.
