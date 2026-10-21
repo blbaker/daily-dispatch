@@ -58,7 +58,9 @@ test('syncDocs writes each page with its id, edit URL and rewritten links, plus 
   const out = join(root, 'site-docs');
   assert.equal(syncDocs(root, out, pages), 2);
   const alpha = readFileSync(join(out, 'alpha.md'), 'utf8');
-  assert.match(alpha, /^---\nid: alpha\ncustom_edit_url: .*\/edit\/main\/docs\/a\.md\n---\n/);
+  assert.match(alpha, /^---\n# Generated from docs\/a\.md .*\nid: alpha\ncustom_edit_url: .*\/edit\/main\/docs\/a\.md\n---\n/);
+  // The page heading must be the first body line, or Docusaurus titles the page with its id.
+  assert.match(alpha, /\n---\n\n?# /);
   assert.match(alpha, /\[contributing\]\(\.\/contributing\.md#checks\)/);
   assert.equal(readFileSync(join(out, 'assets/screenshots/shot.png'), 'utf8'), 'png');
 });
